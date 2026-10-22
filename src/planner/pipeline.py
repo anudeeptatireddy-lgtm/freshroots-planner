@@ -40,11 +40,10 @@ def resolve_run_date(raw: dict, requested: dt.date | None, notes: list) -> dt.da
 
 
 def run_pipeline(data_dir: str | Path, run_date: dt.date | None, cfg: dict) -> PipelineResult:
-    raw, hashes, load_issues = load_all(data_dir, cfg)
+    raw, hashes = load_all(data_dir, cfg)
     notes: list[str] = []
     run_date = resolve_run_date(raw, run_date, notes)
     cleaned, issues = clean(raw, cfg, run_date)
-    issues = load_issues + issues
     table = organise(cleaned, cfg, run_date)
     table = apply_rules(table, cfg)
     table = apply_forecast(table, cleaned, cfg, run_date)

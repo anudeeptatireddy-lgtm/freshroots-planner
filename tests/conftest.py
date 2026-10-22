@@ -51,8 +51,8 @@ def dirty_dir(tmp_path):
             "SKU013,2026-W38,0",                       # zero
             ""]
     (tmp_path / "weekly_sales.csv").write_text("\r\n".join(out))
-    inv = (tmp_path / "current_inventory.csv").read_text().replace("SKU014,", "SKU014,", 1)
-    inv = "\n".join(l for l in inv.split("\n") if not l.startswith("SKU015,"))   # master SKU w/o inventory
+    inv = (tmp_path / "current_inventory.csv").read_text()
+    inv = "\n".join(ln for ln in inv.split("\n") if not ln.startswith("SKU015,"))   # master SKU w/o inventory
     (tmp_path / "current_inventory.csv").write_text(inv + "\n")
     master = (tmp_path / "sku_master.csv").read_text()
     master = master.replace("SKU003,Freshroots Brown Rice 1kg,Staple,Low", "SKU003,Freshroots Brown Rice 1kg,Staple,Medium")

@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 import pandas as pd
 import pypdf
@@ -8,8 +7,7 @@ import pytest
 from planner import outputs, review
 from planner.cli import main
 from planner.common import PlannerError, load_config
-from planner.pipeline import run_pipeline
-from tests.conftest import ROOT, RUN_DATE
+from tests.conftest import ROOT
 
 
 def run_cli(tmp_path, *extra, data=None):
@@ -35,13 +33,14 @@ def test_run_writes_stage_1_to_6_outputs(tmp_path):
 
 
 def test_outputs_never_overwritten(tmp_path):
-    a, b = run_cli(tmp_path), None
+    run_cli(tmp_path)
     run_cli(tmp_path)
     assert sorted(p.name for p in tmp_path.iterdir()) == ["2026-10-19", "2026-10-19_r2"]
 
 
 def test_reproducible(tmp_path):
-    run_cli(tmp_path / "a"); run_cli(tmp_path / "b")
+    run_cli(tmp_path / "a")
+    run_cli(tmp_path / "b")
     for f in ("planning_table.csv", "data_quality_report.csv", "exceptions.csv"):
         assert (tmp_path / "a/2026-10-19" / f).read_bytes() == (tmp_path / "b/2026-10-19" / f).read_bytes()
 
@@ -68,7 +67,7 @@ def test_all_exceptions_approved_gives_three_pos(tmp_path):
     t = outputs.load_planning_table(d)
     rows = [review.make_decision(r.sku_id, r.order_qty, "approve", "Raghav") for r in t[t.status != "NO_ORDER"].itertuples()]
     review.append_log(d / "review_log.csv", rows)
-    res = outputs.finalize_run(d, cfg)
+    outputs.finalize_run(d, cfg)
     z = pd.read_csv(d / "purchase_orders_zoho_import.csv")
     got = {(v, s): q for v, s, q in zip(z["Vendor ID"], z["SKU"], z["Quantity"])}
     assert got == {("DIST001", "SKU001"): 750, ("DIST001", "SKU013"): 120, ("DIST002", "SKU003"): 300,
@@ -136,7 +135,8 @@ def test_cli_error_exit_code(tmp_path, capsys):
 
 def test_prices_flow_into_po(tmp_path, data_dir):
     import shutil
-    src = tmp_path / "src"; src.mkdir()
+    src = tmp_path / "src"
+    src.mkdir()
     for f in data_dir.glob("*.csv"):
         shutil.copy(f, src / f.name)
     (src / "sku_prices.csv").write_text("SKU_ID,Unit_Price\nSKU004,12.5\nSKU011,30\n")

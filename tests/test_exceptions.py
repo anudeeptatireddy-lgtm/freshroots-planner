@@ -1,4 +1,3 @@
-import copy
 import datetime as dt
 
 import pandas as pd
@@ -80,8 +79,8 @@ def test_new_launch(data_dir, cfg, tmp_path):
     import shutil
     for f in data_dir.glob("*.csv"):
         shutil.copy(f, tmp_path / f.name)
-    lines = [l for l in (tmp_path / "weekly_sales.csv").read_text().splitlines()
-             if not (l.startswith("SKU010,") and l.split(",")[1] < "2026-W38")]
+    lines = [ln for ln in (tmp_path / "weekly_sales.csv").read_text().splitlines()
+             if not (ln.startswith("SKU010,") and ln.split(",")[1] < "2026-W38")]
     (tmp_path / "weekly_sales.csv").write_text("\n".join(lines) + "\n")
     res = run_pipeline(tmp_path, RUN_DATE, cfg)
     r = res.table.set_index("sku_id").loc["SKU010"]

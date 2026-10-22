@@ -4,9 +4,8 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
-from pathlib import Path
 
-from planner import handoff, outputs, review
+from planner import outputs, review
 from planner.common import PlannerError, load_config
 from planner.pipeline import run_pipeline
 
@@ -21,7 +20,7 @@ def _cmd_run(args) -> int:
     for n in result.notes:
         print(f"  note: {n}")
     print(f"  data issues: {len(result.issues)} ({int((result.issues.severity == 'review').sum())} need review)")
-    print(f"  status: " + ", ".join(f"{k}={v}" for k, v in t.status.value_counts().sort_index().items()))
+    print("  status: " + ", ".join(f"{k}={v}" for k, v in t.status.value_counts().sort_index().items()))
     if args.auto_approve_rules_only:
         log_path = run_dir / "review_log.csv"
         review.append_log(log_path, review.auto_decisions(outputs.load_planning_table(run_dir)))

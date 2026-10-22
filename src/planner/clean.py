@@ -6,8 +6,15 @@ import math
 
 import pandas as pd
 
-from planner.common import (PlannerError, forecast_week_starts, iso_week_label, make_issue,
-                            parse_date, parse_iso_week, window_weeks)
+from planner.common import (
+    PlannerError,
+    forecast_week_starts,
+    iso_week_label,
+    make_issue,
+    parse_date,
+    parse_iso_week,
+    window_weeks,
+)
 
 NAN = float("nan")
 
@@ -146,7 +153,8 @@ def _clean_inventory(df, run_date, issues):
 
 
 # --------------------------------------------------------------------------- sales
-def _clean_sales(df, cfg, win, issues):
+def _parse_sales_rows(df, cfg, win, issues) -> pd.DataFrame:
+    """Row-level checks: blank IDs, bad weeks, incomplete weeks, blank/negative/zero units."""
     f = "weekly_sales.csv"
     win_set, last = set(win), win[-1]
     zero_action = cfg["cleaning"]["zero_units_action"]
@@ -165,23 +173,25 @@ def _clean_sales(df, cfg, win, issues):
         if wk > last:
             issues.append(make_issue(f, row, f"Week {iso_week_label(wk)} is not complete as of the run date", "Excluded from calculations", sku_id=sku, severity="info"))
             continue
-        sev = "review" if wk in win_set else "info"
+        sev = "review" if wk in win_set else "info"      # old weeks only matter for history, not the window
         units = _to_float(r["Units_Sold"])
         if math.isnan(units):
             issues.append(make_issue(f, row, f"Units_Sold '{r['Units_Sold']}' is blank/non-numeric ({iso_week_label(wk)})", "Excluded from averages; treated as missing, not zero", sku_id=sku, severity=sev))
         elif units < 0:
             issues.append(make_issue(f, row, f"Negative Units_Sold {units:g} ({iso_week_label(wk)})", "Excluded from averages; treated as missing", sku_id=sku, severity=sev))
             units = NAN
-        elif units == 0 and zero_action != "keep":
-            if zero_action == "exclude":
-                issues.append(make_issue(f, row, f"Zero Units_Sold ({iso_week_label(wk)})", "Excluded from averages; treated as missing", sku_id=sku, severity=sev))
-                units = NAN
-            else:
-                issues.append(make_issue(f, row, f"Zero Units_Sold ({iso_week_label(wk)}); could be a real zero or a stock-out week", "Kept in averages; SKU routed to review", sku_id=sku, severity=sev))
+        elif units == 0 and zero_action == "exclude":
+            issues.append(make_issue(f, row, f"Zero Units_Sold ({iso_week_label(wk)})", "Excluded from averages; treated as missing", sku_id=sku, severity=sev))
+            units = NAN
+        elif units == 0 and zero_action == "flag":
+            issues.append(make_issue(f, row, f"Zero Units_Sold ({iso_week_label(wk)}); could be a real zero or a stock-out week", "Kept in averages; SKU routed to review", sku_id=sku, severity=sev))
         rows.append({"sku_id": sku, "week_start": wk, "units": units, "row": r["_row"]})
-    d = pd.DataFrame(rows, columns=["sku_id", "week_start", "units", "row"])
+    return pd.DataFrame(rows, columns=["sku_id", "week_start", "units", "row"])
 
-    keep = cfg["cleaning"]["duplicate_keep"]
+
+def _drop_duplicate_weeks(d: pd.DataFrame, cfg: dict, win_set: set, issues) -> pd.DataFrame:
+    """One row per SKU + week. Prefers a valid value; logs every dropped copy."""
+    f, keep = "weekly_sales.csv", cfg["cleaning"]["duplicate_keep"]
     drop_rows = set()
     for (sku, wk), g in d[d.duplicated(["sku_id", "week_start"], keep=False)].groupby(["sku_id", "week_start"]):
         g = g.sort_values("row")
@@ -189,22 +199,31 @@ def _clean_sales(df, cfg, win, issues):
         chosen = pool.iloc[-1] if keep == "last" else pool.iloc[0]
         differs = g.units.nunique(dropna=False) > 1
         for r in g.to_dict("records"):
-            if r["row"] != chosen["row"]:
-                drop_rows.add(r["row"])
-                issues.append(make_issue(f, f"row {r['row']}", f"Duplicate {sku} {iso_week_label(wk)} (value {r['units']:g}" + (", differs from other copy)" if differs else ", identical copy)"),
-                                         f"Dropped; kept row {chosen['row']} (value {chosen['units']:g})", sku_id=sku,
-                                         severity="review" if differs and wk in win_set else "info"))
-    d = d[~d["row"].isin(drop_rows)].drop(columns="row").reset_index(drop=True)
+            if r["row"] == chosen["row"]:
+                continue
+            drop_rows.add(r["row"])
+            issues.append(make_issue(f, f"row {r['row']}", f"Duplicate {sku} {iso_week_label(wk)} (value {r['units']:g}" + (", differs from other copy)" if differs else ", identical copy)"),
+                                     f"Dropped; kept row {chosen['row']} (value {chosen['units']:g})", sku_id=sku,
+                                     severity="review" if differs and wk in win_set else "info"))
+    return d[~d["row"].isin(drop_rows)].drop(columns="row").reset_index(drop=True)
 
+
+def _flag_missing_weeks(d: pd.DataFrame, win: list, issues) -> None:
+    """Weeks absent after a SKU's first sale are missing (not zero); earlier weeks are just pre-launch."""
     for sku, g in d.groupby("sku_id"):
         valid = set(g[g.units.notna()].week_start)
         if not valid:
             continue
-        first = min(valid)
-        missing = [w for w in win if w >= first and w not in valid]
+        missing = [w for w in win if w >= min(valid) and w not in valid]
         if missing:
-            issues.append(make_issue(f, "n/a", f"Missing week(s) inside the window: {', '.join(iso_week_label(w) for w in missing)}",
+            issues.append(make_issue("weekly_sales.csv", "n/a", f"Missing week(s) inside the window: {', '.join(iso_week_label(w) for w in missing)}",
                                      "Treated as missing, not zero; SKU routed to review", sku_id=sku))
+
+
+def _clean_sales(df, cfg, win, issues):
+    d = _parse_sales_rows(df, cfg, win, issues)
+    d = _drop_duplicate_weeks(d, cfg, set(win), issues)
+    _flag_missing_weeks(d, win, issues)
     return d
 
 

@@ -1,0 +1,30 @@
+.block-container{padding-top:3.2rem;padding-bottom:4rem;max-width:760px}
+.fr-badge{display:inline-block;font-size:.72rem;font-weight:600;border-radius:99px;padding:2px 9px;margin:2px 4px 2px 0;
+  background:rgba(31,111,235,.14);color:#1f6feb}
+.fr-badge.warn{background:rgba(217,119,6,.16);color:#c2670a}
+.fr-badge.bad{background:rgba(209,69,59,.16);color:#d1453b}
+.fr-badge.ok{background:rgba(46,160,67,.16);color:#2a9a43}
+.fr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.fr-grid div{background:rgba(128,128,128,.10);border-radius:10px;padding:8px 10px}
+.fr-grid b{display:block;font-size:1.05rem}
+.fr-grid span{font-size:.72rem;opacity:.7}
+.fr-gauge{position:relative;height:12px;border-radius:99px;background:rgba(128,128,128,.18);margin:14px 0 4px}
+.fr-band{position:absolute;top:0;bottom:0;border-radius:99px;background:rgba(46,160,67,.35)}
+.fr-mark{position:absolute;top:-4px;width:6px;height:20px;border-radius:3px;transform:translateX(-3px)}
+.fr-gl{font-size:.75rem;opacity:.75}
+.fr-tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;
+  background:rgba(128,128,128,.30);font-size:.62rem;font-weight:700;margin-left:5px;cursor:help;position:relative;
+  vertical-align:middle;color:inherit;font-style:normal;letter-spacing:0}
+.fr-tip:hover::after,.fr-tip:focus::after{content:attr(data-tip);position:absolute;left:-10px;bottom:135%;width:max-content;
+  max-width:min(250px,72vw);background:#1c2a24;color:#fff;font-weight:400;font-size:.76rem;line-height:1.35;padding:8px 10px;
+  border-radius:8px;z-index:99;white-space:normal;text-align:left;box-shadow:0 4px 14px rgba(0,0,0,.28);text-transform:none}
+.fr-tip.r:hover::after,.fr-tip.r:focus::after{left:auto;right:-10px}
+.fr-title{font-weight:650;font-size:1.02rem}
+.fr-sub{opacity:.7;font-size:.82rem}
+.st-key-stats [data-testid="stHorizontalBlock"]{flex-wrap:nowrap;gap:.4rem}
+.st-key-stats [data-testid="stColumn"]{min-width:0;flex:1 1 0}
+.st-key-stats [data-testid="stMetricValue"]{font-size:1.5rem}
+.st-key-stats [data-testid="stMetricLabel"] p{font-size:.72rem}
+[class*="st-key-actions_"] [data-testid="stHorizontalBlock"]{flex-wrap:nowrap;gap:.4rem}
+[class*="st-key-actions_"] [data-testid="stColumn"]{min-width:0;flex:1 1 0}
+[class*="st-key-actions_"] button p{font-size:.82rem;white-space:nowrap}

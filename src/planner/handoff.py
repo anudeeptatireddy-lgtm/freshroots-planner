@@ -6,6 +6,8 @@ import os
 
 import pandas as pd
 
+from planner.common import STATUS_AUTO, STATUS_REVIEW
+
 
 def template_run_summary(run_date, table: pd.DataFrame, lines: pd.DataFrame, held: pd.DataFrame, stats: dict) -> str:
     counts = table["flag"].value_counts().to_dict()
@@ -14,7 +16,7 @@ def template_run_summary(run_date, table: pd.DataFrame, lines: pd.DataFrame, hel
     rate = "n/a (no human decisions yet)" if no_human else f"{stats['override_rate']:.0%}"
     return "\n".join([
         f"- Run date {run_date}: {len(table)} SKUs processed ({flag_txt}).",
-        f"- {int((table.status == 'NEEDS_REVIEW').sum())} lines were sent to review; {int((table.status == 'AUTO_APPROVED').sum())} were auto-approved by the rules.",
+        f"- {int((table.status == STATUS_REVIEW).sum())} lines were sent to review; {int((table.status == STATUS_AUTO).sum())} were auto-approved by the rules.",
         f"- {lines.po_number.nunique() if not lines.empty else 0} purchase order(s) with {len(lines)} line(s) were generated from approved lines.",
         f"- {len(held)} line(s) with a recommended order are held back pending review.",
         f"- Override rate so far: {rate}.",
@@ -24,7 +26,7 @@ def template_run_summary(run_date, table: pd.DataFrame, lines: pd.DataFrame, hel
 def held_lines(table: pd.DataFrame, decisions: pd.DataFrame) -> pd.DataFrame:
     """Lines excluded from POs: NEEDS_REVIEW with no decision, or rejected."""
     decided = {} if decisions is None or decisions.empty else decisions.set_index("sku_id").decision.to_dict()
-    mask = (table.status == "NEEDS_REVIEW") & (~table.sku_id.isin(decided)) | table.sku_id.map(decided).eq("reject")
+    mask = (table.status == STATUS_REVIEW) & (~table.sku_id.isin(decided)) | table.sku_id.map(decided).eq("reject")
     h = table[mask].copy()
     h["held_reason"] = ["Rejected by reviewer" if decided.get(s) == "reject" else "Pending review" for s in h.sku_id]
     return h

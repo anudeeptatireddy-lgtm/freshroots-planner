@@ -3,13 +3,15 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import shutil
+import tempfile
 from pathlib import Path
 
 import pandas as pd
 
 from planner import handoff, po, review
-from planner.common import PlannerError
-from planner.pipeline import PipelineResult
+from planner.common import STATUS_AUTO, STATUS_REVIEW, PlannerError
+from planner.pipeline import PipelineResult, run_pipeline
 
 TEXT_FILL_SKIP = {"is_festival", "is_urgent", "is_new_launch"}
 
@@ -52,7 +54,7 @@ def write_run(result: PipelineResult, cfg: dict, out_base: str | Path) -> Path:
     result.issues.to_csv(run_dir / "data_quality_report.csv", index=False)
     exc_cols = ["sku_id", "sku_name", "distributor_id", "flag", "order_qty", "weeks_of_cover", "weeks_of_cover_after_order",
                 "exceptions", "exception_reasons", "suggested_qty", "suggested_note"]
-    t[t.status == "NEEDS_REVIEW"][exc_cols].to_csv(run_dir / "exceptions.csv", index=False, float_format="%.6g")
+    t[t.status == STATUS_REVIEW][exc_cols].to_csv(run_dir / "exceptions.csv", index=False, float_format="%.6g")
     log = {
         "run_date": result.run_date.isoformat(),
         "generated_at": dt.datetime.now().isoformat(timespec="seconds"),
@@ -100,3 +102,27 @@ def finalize_run(run_dir: str | Path, cfg: dict, summary_override: str | None = 
                     "finalised_at": dt.datetime.now().isoformat(timespec="seconds")})
     (run_dir / "run_log.json").write_text(json.dumps(run_log, indent=2, default=str))
     return {"lines": lines, "pdfs": paths, "held": held, "stats": stats, "summary": summary}
+
+
+def plan_with_overrides(data_dir: str | Path, overrides: dict[str, bytes], cfg: dict, out_base: str | Path) -> Path:
+    """Run stages 1-6 on `data_dir`, with any uploaded files (name -> bytes) replacing the bundled ones."""
+    with tempfile.TemporaryDirectory() as tmp:
+        for f in Path(data_dir).glob("*.csv"):
+            shutil.copy(f, Path(tmp) / f.name)
+        for name, content in overrides.items():
+            (Path(tmp) / name).write_bytes(content)
+        result = run_pipeline(tmp, None, cfg)
+        Path(out_base).mkdir(parents=True, exist_ok=True)
+        return write_run(result, cfg, out_base)
+
+
+def generate_pos(run_dir: str | Path, cfg: dict) -> dict:
+    """Approve untouched AUTO_APPROVED lines at the system quantity, then finalise (refuses while exceptions are open)."""
+    run_dir = Path(run_dir)
+    table = load_planning_table(run_dir)
+    log_path = run_dir / "review_log.csv"
+    decided = set(review.latest_decisions(review.read_log(log_path)).sku_id)
+    untouched = table[(table.status == STATUS_AUTO) & ~table.sku_id.isin(decided)]
+    review.append_log(log_path, [review.make_decision(r.sku_id, r.order_qty, "approve", review.AUTO_REVIEWER)
+                                 for r in untouched.itertuples()])
+    return finalize_run(run_dir, cfg)

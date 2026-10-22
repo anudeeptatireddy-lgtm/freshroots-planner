@@ -10,7 +10,7 @@ from tests.conftest import RUN_DATE
 
 
 def run_clean(data_dir, cfg, run_date=RUN_DATE):
-    raw, hashes, _ = load_all(data_dir, cfg)
+    raw, hashes = load_all(data_dir, cfg)
     return clean(raw, cfg, run_date)
 
 
@@ -42,7 +42,7 @@ def test_missing_required_file(data_dir, cfg, tmp_path):
 
 
 def test_crlf_files_load(dirty_dir, cfg):
-    raw, _, _ = load_all(dirty_dir, cfg)
+    raw, _ = load_all(dirty_dir, cfg)
     assert "SKU_ID" in raw["sales"].columns
 
 

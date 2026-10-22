@@ -29,7 +29,7 @@ EXPECTED = {
 
 
 def build(data_dir, cfg):
-    raw, _, _ = load_all(data_dir, cfg)
+    raw, _ = load_all(data_dir, cfg)
     cleaned, _ = clean(raw, cfg, RUN_DATE)
     t = organise(cleaned, cfg, RUN_DATE)
     t = apply_rules(t, cfg)
@@ -86,7 +86,7 @@ def test_forecast(table):
 def test_forecast_uses_calendar_month_per_week(data_dir, cfg):
     """A run in late Nov: weeks starting Nov 23/30 hit Nov (festival) then Dec (not)."""
     import datetime as dt
-    raw, _, _ = load_all(data_dir, cfg)
+    raw, _ = load_all(data_dir, cfg)
     run = dt.date(2026, 11, 23)
     cleaned, _ = clean(raw, cfg, run)
     t = apply_forecast(organise(cleaned, cfg, run), cleaned, cfg, run)

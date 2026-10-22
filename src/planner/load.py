@@ -40,8 +40,8 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def load_all(data_dir: str | Path, cfg: dict) -> tuple[dict, dict, list[dict]]:
-    """Returns (raw frames, file hashes, issues). Optional frames are None when absent."""
+def load_all(data_dir: str | Path, cfg: dict) -> tuple[dict, dict]:
+    """Returns (raw frames, file hashes). Optional frames are None when absent."""
     data_dir = Path(data_dir)
     raw, hashes = {}, {}
     for key, required in REQUIRED.items():
@@ -57,4 +57,4 @@ def load_all(data_dir: str | Path, cfg: dict) -> tuple[dict, dict, list[dict]]:
             hashes[path.name] = sha256(path)
         else:
             raw[key] = None
-    return raw, hashes, []
+    return raw, hashes

@@ -5,7 +5,7 @@ requires-python = ">=3.11"
 dependencies = ["pandas", "pyyaml", "reportlab"]
 
 [project.optional-dependencies]
-dev = ["pytest", "pypdf"]
+dev = ["pytest", "pypdf", "ruff"]
 app = ["streamlit"]
 ai = ["anthropic"]
 
@@ -19,3 +19,11 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "SIM", "C4", "UP", "I"]
+ignore = ["B905", "E501"]

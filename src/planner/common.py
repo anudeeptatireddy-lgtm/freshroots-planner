@@ -11,6 +11,12 @@ ISSUE_COLUMNS = ["file", "row_ref", "sku_id", "issue", "action", "severity"]
 # severity: "review" -> routes the SKU to a human (DATA_ISSUE); "info" -> logged only.
 
 
+# Line status values written to planning_table.csv
+STATUS_REVIEW = "NEEDS_REVIEW"
+STATUS_AUTO = "AUTO_APPROVED"
+STATUS_NO_ORDER = "NO_ORDER"
+
+
 class PlannerError(Exception):
     """A problem that must stop the run, with a message for the user."""
 

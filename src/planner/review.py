@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from planner.common import PlannerError
+from planner.common import STATUS_AUTO, STATUS_REVIEW, PlannerError
 
 LOG_COLUMNS = ["sku_id", "system_qty", "final_qty", "decision", "reviewer", "note", "timestamp"]
 DECISIONS = ("approve", "edit", "reject")
@@ -38,7 +38,7 @@ def make_decision(sku_id: str, system_qty: float, decision: str, reviewer: str,
 def auto_decisions(table: pd.DataFrame) -> list[dict]:
     """Approve only AUTO_APPROVED lines at the system quantity."""
     return [make_decision(r.sku_id, r.order_qty, "approve", AUTO_REVIEWER)
-            for r in table[table.status == "AUTO_APPROVED"].itertuples()]
+            for r in table[table.status == STATUS_AUTO].itertuples()]
 
 
 def append_log(path: Path, rows: list[dict]) -> None:
@@ -65,7 +65,7 @@ def latest_decisions(log: pd.DataFrame) -> pd.DataFrame:
 
 def pending_review(table: pd.DataFrame, decisions: pd.DataFrame) -> list[str]:
     decided = set(decisions.sku_id) if not decisions.empty else set()
-    return [s for s in table[table.status == "NEEDS_REVIEW"].sku_id if s not in decided]
+    return [s for s in table[table.status == STATUS_REVIEW].sku_id if s not in decided]
 
 
 def can_generate_pos(table: pd.DataFrame, decisions: pd.DataFrame) -> bool:

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import math
 from pathlib import Path
 
 import pandas as pd
@@ -101,7 +100,8 @@ def write_po_pdf(po_number: str, lines: pd.DataFrame, cfg: dict, path: Path) -> 
 def write_pos(lines: pd.DataFrame, cfg: dict, out_dir: Path) -> list[Path]:
     out_dir = Path(out_dir)
     paths = []
-    write_zoho_csv(lines, cfg, out_dir / "purchase_orders_zoho_import.csv") if not lines.empty else None
+    if not lines.empty:
+        write_zoho_csv(lines, cfg, out_dir / "purchase_orders_zoho_import.csv")
     for po, g in lines.groupby("po_number"):
         p = out_dir / f"PO_{po}.pdf"
         write_po_pdf(po, g.reset_index(drop=True), cfg, p)

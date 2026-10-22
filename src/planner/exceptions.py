@@ -6,7 +6,7 @@ import math
 
 import pandas as pd
 
-from planner.common import window_weeks
+from planner.common import STATUS_AUTO, STATUS_NO_ORDER, STATUS_REVIEW, window_weeks
 
 CODES = ["NEW_LAUNCH", "DATA_ISSUE", "BELOW_MIN_AFTER_ORDER", "ABOVE_MAX_AFTER_ORDER", "BORDERLINE",
          "SHARP_DROP", "DISTRIBUTOR_ANOMALY", "HIGH_VALUE"]
@@ -20,91 +20,123 @@ def distributor_anomalies(dsales: pd.DataFrame | None, cfg: dict, run_date: dt.d
     if dsales is None or dsales.empty:
         return {}
     n, r = cfg["history"]["window_weeks"], cfg["history"]["recent_weeks"]
-    win = window_weeks(run_date, n)
-    recent = set(win[-r:])
+    recent = set(window_weeks(run_date, n)[-r:])
     limit = cfg["exceptions"]["distributor_anomaly_change"]
     out: dict[str, str] = {}
     for (sku, dist), g in dsales.groupby(["sku_id", "distributor_id"]):
         a12, a4 = g.units.mean(), g[g.week_start.isin(recent)].units.mean()
         if a12 and not math.isnan(a4) and abs(a4 / a12 - 1) > limit:
             msg = f"Distributor {dist} moved {a4 / a12 - 1:+.0%} (4-week vs 12-week average), beyond the +/-{limit:.0%} limit."
-            out[sku] = (out[sku] + " " + msg) if sku in out else msg
+            out[sku] = f"{out[sku]} {msg}" if sku in out else msg
     return out
+
+
+def _review_issues_by_sku(issues: list[dict]) -> dict[str, list[str]]:
+    by_sku: dict[str, list[str]] = {}
+    for i in issues:
+        if i["severity"] == "review" and i["sku_id"]:
+            by_sku.setdefault(i["sku_id"], []).append(f"{i['file']} {i['row_ref']}: {i['issue']}")
+    return by_sku
+
+
+# Each check returns a reason string (or None). The two order-quantity checks also return a suggestion.
+def _new_launch(r: dict, cfg: dict) -> str | None:
+    if not r["is_new_launch"]:
+        return None
+    return (f"Only {r['history_weeks']} week(s) of sales history (need {cfg['history']['window_weeks']}); "
+            "the rules are not applied automatically to new launches.")
+
+
+def _data_issue(r: dict, messages: list[str]) -> str | None:
+    if not messages:
+        return None
+    return f"{len(messages)} data issue(s): " + "; ".join(messages[:3]) + (" ..." if len(messages) > 3 else "")
+
+
+def _below_min(r: dict) -> tuple[str, float, str] | None:
+    after, mn, qty = r["weeks_of_cover_after_order"], r["min_weeks"], r["order_qty"]
+    if "STOCKOUT_RISK" not in r["flag"] or after >= mn:
+        return None
+    total = math.ceil(mn * r["adjusted_weekly_demand"] - r["inventory_position"] - 1e-9)
+    top_up = total - qty
+    reason = (f"After the recommended order of {qty:g} units stock would cover {after:.2f} weeks; "
+              f"the minimum is {mn:g}. Suggested top-up: +{top_up:g} units (order {total:g} in total) to reach {mn:g} weeks.")
+    return reason, float(total), f"Top up by {top_up:g} units to reach the {mn:g}-week minimum."
+
+
+def _above_max(r: dict) -> tuple[str, float, str] | None:
+    after, mx, qty = r["weeks_of_cover_after_order"], r["max_weeks"], r["order_qty"]
+    if qty <= 0 or after <= mx:     # OVERSTOCK lines have qty 0 and would otherwise always trigger
+        return None
+    total = max(0, math.floor(mx * r["adjusted_weekly_demand"] - r["inventory_position"] + 1e-9))
+    extra = " Perishable: over-ordering risks write-off." if r["perishability"] == "High" else ""
+    reason = (f"After the recommended order of {qty:g} units stock would cover {after:.2f} weeks, above the {mx:g}-week maximum.{extra} "
+              f"Suggested quantity: {total:g} units.")
+    return reason, float(total), f"Reduce to {total:g} units to stay within the {mx:g}-week maximum."
+
+
+def _borderline(r: dict, ec: dict, high_demand_threshold: float) -> str | None:
+    cover, mn, mx, margin = r["weeks_of_cover"], r["min_weeks"], r["max_weeks"], ec["borderline_weeks"]
+    near = []
+    if r["flag"] != "OVERSTOCK":    # demand and minimum thresholds only matter on the order branch
+        if abs(r["change_4w_vs_12w"] - high_demand_threshold) <= ec["borderline_change_pp"]:
+            near.append(f"4-week change {r['change_4w_vs_12w']:+.1%} is within {ec['borderline_change_pp'] * 100:g} points "
+                        f"of the {high_demand_threshold:.0%} high-demand threshold")
+        if abs(cover - mn) <= margin:
+            near.append(f"cover {cover:.2f} weeks is within {margin:g} weeks of the {mn:g}-week minimum")
+    if abs(cover - mx) <= margin:
+        near.append(f"cover {cover:.2f} weeks is within {margin:g} weeks of the {mx:g}-week maximum")
+    if not near:
+        return None
+    return "Close to a rule threshold, so a small data change would flip the decision: " + "; ".join(near) + "."
+
+
+def _sharp_drop(r: dict, ec: dict) -> str | None:
+    if r["change_4w_vs_12w"] >= ec["sharp_drop_threshold"]:
+        return None
+    return (f"Demand fell {r['change_4w_vs_12w']:+.1%} (4-week vs 12-week average), beyond {ec['sharp_drop_threshold']:.0%}; "
+            "the rules do not cover falling demand.")
+
+
+def _high_value(r: dict, ec: dict) -> str | None:
+    limit, qty, price = ec.get("high_value_threshold"), r["order_qty"], r["unit_price"]
+    if limit is None or qty <= 0 or math.isnan(price) or qty * price <= limit:
+        return None
+    return f"Order value INR {qty * price:,.0f} exceeds the INR {limit:,.0f} review threshold."
+
+
+def _classify_row(r: dict, cfg: dict, data_msgs: list[str], anomaly: str | None) -> dict:
+    ec, planned = cfg["exceptions"], r["flag"] != "NOT_PLANNED"
+    thr = cfg["rules"]["high_demand_threshold"]
+    codes: dict[str, str] = {}
+    sug_qty, sug_note = NAN, ""
+
+    codes["NEW_LAUNCH"] = _new_launch(r, cfg)
+    codes["DATA_ISSUE"] = _data_issue(r, data_msgs or ([r["plan_blockers"]] if not planned else []))
+    if planned:
+        for code, check in (("BELOW_MIN_AFTER_ORDER", _below_min(r)), ("ABOVE_MAX_AFTER_ORDER", _above_max(r))):
+            if check:
+                codes[code], sug_qty, sug_note = check
+        codes["BORDERLINE"] = _borderline(r, ec, thr)
+        codes["SHARP_DROP"] = _sharp_drop(r, ec)
+        codes["HIGH_VALUE"] = _high_value(r, ec)
+    codes["DISTRIBUTOR_ANOMALY"] = anomaly
+
+    found = [c for c in CODES if codes.get(c)]
+    if found:
+        status = STATUS_REVIEW
+    elif r["order_qty"] > 0:
+        status = STATUS_AUTO
+    else:
+        status = STATUS_NO_ORDER
+    return {"exceptions": "; ".join(found), "exception_reasons": " | ".join(f"{c}: {codes[c]}" for c in found),
+            "suggested_qty": sug_qty, "suggested_note": sug_note, "status": status,
+            "data_issues": " | ".join(data_msgs or ([r["plan_blockers"]] if not planned else []))}
 
 
 def classify(table: pd.DataFrame, issues: list[dict], cfg: dict, run_date: dt.date,
              dsales: pd.DataFrame | None = None) -> pd.DataFrame:
-    ec = cfg["exceptions"]
-    review_issues: dict[str, list[str]] = {}
-    for i in issues:
-        if i["severity"] == "review" and i["sku_id"]:
-            review_issues.setdefault(i["sku_id"], []).append(f"{i['file']} {i['row_ref']}: {i['issue']}")
+    by_sku = _review_issues_by_sku(issues)
     anomalies = distributor_anomalies(dsales, cfg, run_date)
-    thr = cfg["rules"]["high_demand_threshold"]
-    rounding = cfg["rules"]["order_qty_rounding"]
-
-    res = []
-    for r in table.to_dict("records"):
-        codes: dict[str, str] = {}
-        sug_qty, sug_note = NAN, ""
-        planned = r["flag"] != "NOT_PLANNED"
-        qty = r["order_qty"]
-
-        if r["is_new_launch"]:
-            codes["NEW_LAUNCH"] = (f"Only {r['history_weeks']} week(s) of sales history (need {cfg['history']['window_weeks']}); "
-                                   "the rules are not applied automatically to new launches.")
-        data_msgs = review_issues.get(r["sku_id"], [])
-        if not planned and not data_msgs:
-            data_msgs = [r["plan_blockers"]]
-        if data_msgs:
-            codes["DATA_ISSUE"] = f"{len(data_msgs)} data issue(s): " + "; ".join(data_msgs[:3]) + (" ..." if len(data_msgs) > 3 else "")
-
-        if planned:
-            cover, after = r["weeks_of_cover"], r["weeks_of_cover_after_order"]
-            mn, mx, adj, pos = r["min_weeks"], r["max_weeks"], r["adjusted_weekly_demand"], r["inventory_position"]
-            if "STOCKOUT_RISK" in r["flag"] and after < mn:
-                total = math.ceil(mn * adj - pos - 1e-9)
-                sug_qty, top_up = float(total), total - qty
-                codes["BELOW_MIN_AFTER_ORDER"] = (f"After the recommended order of {qty:g} units stock would cover {after:.2f} weeks; "
-                                                  f"the minimum is {mn:g}. Suggested top-up: +{top_up:g} units (order {total:g} in total) to reach {mn:g} weeks.")
-                sug_note = f"Top up by {top_up:g} units to reach the {mn:g}-week minimum."
-            if qty > 0 and after > mx:
-                total = max(0, math.floor(mx * adj - pos + 1e-9))
-                sug_qty = float(total)
-                extra = " Perishable: over-ordering risks write-off." if r["perishability"] == "High" else ""
-                codes["ABOVE_MAX_AFTER_ORDER"] = (f"After the recommended order of {qty:g} units stock would cover {after:.2f} weeks, above the {mx:g}-week maximum.{extra} "
-                                                  f"Suggested quantity: {total:g} units.")
-                sug_note = f"Reduce to {total:g} units to stay within the {mx:g}-week maximum."
-            near = []
-            if r["flag"] == "OVERSTOCK":
-                if abs(cover - mx) <= ec["borderline_weeks"]:
-                    near.append(f"cover {cover:.2f} weeks is within {ec['borderline_weeks']:g} weeks of the {mx:g}-week maximum")
-            else:
-                if abs(r["change_4w_vs_12w"] - thr) <= ec["borderline_change_pp"]:
-                    near.append(f"4-week change {r['change_4w_vs_12w']:+.1%} is within {ec['borderline_change_pp'] * 100:g} points of the {thr:.0%} high-demand threshold")
-                if abs(cover - mn) <= ec["borderline_weeks"]:
-                    near.append(f"cover {cover:.2f} weeks is within {ec['borderline_weeks']:g} weeks of the {mn:g}-week minimum")
-                if abs(cover - mx) <= ec["borderline_weeks"]:
-                    near.append(f"cover {cover:.2f} weeks is within {ec['borderline_weeks']:g} weeks of the {mx:g}-week maximum")
-            if near:
-                codes["BORDERLINE"] = "Close to a rule threshold, so a small data change would flip the decision: " + "; ".join(near) + "."
-            if r["change_4w_vs_12w"] < ec["sharp_drop_threshold"]:
-                codes["SHARP_DROP"] = (f"Demand fell {r['change_4w_vs_12w']:+.1%} (4-week vs 12-week average), beyond {ec['sharp_drop_threshold']:.0%}; "
-                                       "the rules do not cover falling demand.")
-        if r["sku_id"] in anomalies:
-            codes["DISTRIBUTOR_ANOMALY"] = anomalies[r["sku_id"]]
-        hv = ec.get("high_value_threshold")
-        if hv is not None and planned and qty > 0 and not math.isnan(r["unit_price"]) and qty * r["unit_price"] > hv:
-            codes["HIGH_VALUE"] = f"Order value INR {qty * r['unit_price']:,.0f} exceeds the INR {hv:,.0f} review threshold."
-
-        ordered = [c for c in CODES if c in codes]
-        if ordered:
-            status = "NEEDS_REVIEW"
-        elif qty > 0:
-            status = "AUTO_APPROVED"
-        else:
-            status = "NO_ORDER"
-        res.append({"exceptions": "; ".join(ordered), "exception_reasons": " | ".join(f"{c}: {codes[c]}" for c in ordered),
-                    "suggested_qty": sug_qty, "suggested_note": sug_note, "status": status,
-                    "data_issues": " | ".join(data_msgs)})
-    return pd.concat([table, pd.DataFrame(res, index=table.index)], axis=1)
+    rows = [_classify_row(r, cfg, by_sku.get(r["sku_id"], []), anomalies.get(r["sku_id"])) for r in table.to_dict("records")]
+    return pd.concat([table, pd.DataFrame(rows, index=table.index)], axis=1)
