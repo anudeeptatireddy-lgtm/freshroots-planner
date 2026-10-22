@@ -1,0 +1,72 @@
+# Freshroots planner configuration. Every business threshold lives here, not in code.
+
+files:                       # required inputs (names inside --data directory)
+  sales: weekly_sales.csv
+  sku_master: sku_master.csv
+  distributors: distributor_master.csv
+  inventory: current_inventory.csv
+  calendar: calendar.csv
+
+optional_files:              # used only when present; see README "Known gaps"
+  open_pos: open_purchase_orders.csv       # SKU_ID, Open_PO_Qty
+  prices: sku_prices.csv                   # SKU_ID, Unit_Price
+  distributor_sales: distributor_sales.csv # Distributor_ID, SKU_ID, Week, Units_Sold
+
+history:
+  window_weeks: 12           # long average window (complete weeks before run date)
+  recent_weeks: 4            # short average window
+  forecast_weeks: 4
+
+festival:
+  uplift: 1.25               # applied when calendar.csv marks the month as festival
+  non_festival_uplift: 1.00
+
+rules:
+  high_demand_threshold: 0.20     # 4w avg more than 20% above 12w avg
+  high_demand_multiplier: 1.5     # x Standard_Reorder_Qty
+  stockout_multiplier: 1.0
+  windows:                        # weeks of cover, by Perishability
+    High: {min_weeks: 3, max_weeks: 4}
+    Low: {min_weeks: 6, max_weeks: 14}
+  order_qty_rounding: ceil        # ceil | round | none
+
+exceptions:
+  borderline_change_pp: 0.02      # within 2 percentage points of the high-demand threshold
+  borderline_weeks: 0.25          # within 0.25 weeks of a min/max threshold
+  sharp_drop_threshold: -0.30     # change_4w_vs_12w below this -> SHARP_DROP
+  high_value_threshold: null      # INR; HIGH_VALUE is inactive until this AND prices exist
+  distributor_anomaly_change: 0.50  # PLACEHOLDER: |4w vs 12w change| at distributor level; confirm with Raghav
+
+cleaning:
+  duplicate_keep: last            # first | last
+  zero_units_action: flag         # flag (keep + route to review) | keep | exclude
+  home_regions: [Maharashtra, Goa]  # info-only note for distributors outside these regions
+
+po:
+  # Counterparty of each PO. The only party linked to a SKU is sku_master.Distributor_ID.
+  # Change `counterparty_column` / `vendor_overrides` once procurement confirms the real supplier.
+  counterparty_label: "Supplier (from sku_master.Distributor_ID)"
+  counterparty_column: distributor_id
+  vendor_overrides: {}            # e.g. {DIST001: {vendor_id: V-100, vendor_name: "Acme Foods"}}
+  po_prefix: FR-PO
+  zoho_columns:                   # check against Zoho Inventory's actual import screen
+    po_number: "PO Number"
+    po_date: "PO Date"
+    vendor_id: "Vendor ID"
+    vendor_name: "Vendor Name"
+    sku: "SKU"
+    item_name: "Item Name"
+    quantity: "Quantity"
+    unit: "Unit"
+    unit_price: "Unit Price"
+    notes: "Notes"
+
+ai_summary:                       # optional layer; OFF by default. Summarises only.
+  enabled: false
+  model: claude-sonnet-5-5
+  max_tokens: 900
+  prompt: |
+    You are writing for Deepa Nair, Head of Operations at Freshroots. Using ONLY the tables
+    below, write (1) a plain-English 5-line run summary and (2) a short handoff note for the
+    sourcing team (urgent items first, then excluded lines pending review). Do not change,
+    add or recompute any flag, quantity or approval; quote numbers exactly as given.

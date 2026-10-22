@@ -1,0 +1,20 @@
+[project]
+name = "freshroots-planner"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = ["pandas", "pyyaml", "streamlit", "reportlab"]
+
+[project.optional-dependencies]
+dev = ["pytest", "pypdf"]
+ai = ["anthropic"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
