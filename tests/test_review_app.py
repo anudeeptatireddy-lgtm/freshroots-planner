@@ -24,58 +24,62 @@ def fresh():
     return at
 
 
-def test_generation_blocked_until_every_exception_decided(run_dir):
+def btn(at, key):
+    return [b for b in at.button if b.key == key][0]
+
+
+def test_summary_and_generation_blocked_until_every_exception_decided(run_dir):
     at = fresh()
-    gen = [b for b in at.button if b.key == "generate"][0]
-    assert gen.disabled
-    assert any("Cannot generate POs: 4 exception(s)" in e.value for e in at.error)
-    assert [m.value for m in at.metric][:3] == ["15", "4", "2"]
+    assert btn(at, "generate").disabled
+    assert any("Cannot generate POs yet: 4 exception(s)" in e.value for e in at.error)
+    assert [m.value for m in at.metric] == ["15", "4", "2", "0"]
 
     t = outputs.load_planning_table(run_dir)
     ex = t[t.status == "NEEDS_REVIEW"]
     review.append_log(run_dir / "review_log.csv", [review.make_decision(r.sku_id, r.order_qty, "approve", "Raghav") for r in ex.iloc[:3].itertuples()])
-    at = fresh()
-    assert [b for b in at.button if b.key == "generate"][0].disabled           # one still waiting
+    assert btn(fresh(), "generate").disabled                                   # one still waiting
 
     last = ex.iloc[3]
     review.append_log(run_dir / "review_log.csv", [review.make_decision(last.sku_id, last.order_qty, "reject", "Raghav", note="hold")])
     at = fresh()
-    gen = [b for b in at.button if b.key == "generate"][0]
-    assert not gen.disabled
+    assert not btn(at, "generate").disabled
     at.text_input(key="reviewer").set_value("Raghav").run()
-    [b for b in at.button if b.key == "generate"][0].click().run()
+    btn(at, "generate").click().run()
     assert not at.exception
-    assert (run_dir / "purchase_orders_zoho_import.csv").exists()
     keys = {b.key for b in at.get("download_button")}
     assert {"dl_zoho", "dl_handoff", "dl_log2"} <= keys and any(k.startswith("dl_PO_") for k in keys)   # persist after rerun
     z = pd.read_csv(run_dir / "purchase_orders_zoho_import.csv")
     assert last.sku_id not in set(z["SKU"]) or last.order_qty == 0
 
 
-def _submit(at, sku_index):
-    forms = [b for b in at.button if b.label == "Save decision"]
-    forms[sku_index].click().run()          # exception forms render in order SKU001, SKU003, SKU013, SKU007
-
-
-def test_save_decision_through_form_requires_name(run_dir):
+def test_one_tap_decisions_require_a_name_and_are_logged(run_dir):
     at = fresh()
-    at.radio(key="exc_SKU003_choice").set_value("Edit quantity")
-    at.number_input(key="exc_SKU003_qty").set_value(309)
-    at.text_input(key="exc_SKU003_note").set_value("top up to 6 weeks")
-    _submit(at, 1)
+    btn(at, "exc_suggest_SKU003").click().run()                  # "Use 309" with no name
     assert review.read_log(run_dir / "review_log.csv").empty
     assert any("Reviewer name is required" in e.value for e in at.error)
 
     at.text_input(key="reviewer").set_value("Raghav").run()
-    at.radio(key="exc_SKU003_choice").set_value("Edit quantity")
-    at.number_input(key="exc_SKU003_qty").set_value(309)
-    at.text_input(key="exc_SKU003_note").set_value("top up to 6 weeks")
-    _submit(at, 1)
+    at.text_input(key="exc_note_SKU003").set_value("top up to 6 weeks").run()
+    btn(at, "exc_suggest_SKU003").click().run()
     log = review.read_log(run_dir / "review_log.csv")
     assert list(log.sku_id) == ["SKU003"]
     r = log.iloc[0]
     assert (r.system_qty, r.final_qty, r.decision, r.reviewer, r.note) == (300, 309, "edit", "Raghav", "top up to 6 weeks")
     assert r.timestamp
+    assert [m.value for m in fresh().metric][3] == "1"           # decided counter moves
+
+
+def test_approve_reject_and_edit_buttons(run_dir):
+    at = fresh()
+    at.text_input(key="reviewer").set_value("Raghav").run()
+    btn(at, "exc_approve_SKU001").click().run()
+    btn(at, "exc_reject_SKU013").click().run()
+    at.number_input(key="exc_qty_SKU007").set_value(25).run()
+    btn(at, "exc_saveedit_SKU007").click().run()
+    log = review.latest_decisions(review.read_log(run_dir / "review_log.csv")).set_index("sku_id")
+    assert (log.loc["SKU001", "decision"], log.loc["SKU001", "final_qty"]) == ("approve", 750)
+    assert (log.loc["SKU013", "decision"], log.loc["SKU013", "final_qty"]) == ("reject", 0)
+    assert (log.loc["SKU007", "decision"], log.loc["SKU007", "final_qty"]) == ("edit", 25)
 
 
 def test_app_runs_planner_itself_when_no_runs(tmp_path, monkeypatch):
@@ -83,7 +87,7 @@ def test_app_runs_planner_itself_when_no_runs(tmp_path, monkeypatch):
     at = AppTest.from_file(APP, default_timeout=60)
     at.run()
     assert not at.exception and [b for b in at.button if b.key == "run_now"]      # empty state offers a run
-    [b for b in at.button if b.key == "run_now"][0].click().run()
+    btn(at, "run_now").click().run()
     assert not at.exception
     assert (tmp_path / "2026-10-19" / "planning_table.csv").exists()
     assert [m.value for m in at.metric][:3] == ["15", "4", "2"]
