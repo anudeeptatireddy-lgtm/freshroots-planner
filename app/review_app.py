@@ -3,7 +3,11 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))   # always run the repo code, never a stale installed copy
 
 import pandas as pd
 import streamlit as st
@@ -13,7 +17,6 @@ from glossary import Glossary
 from planner import outputs, review
 from planner.common import STATUS_AUTO, STATUS_REVIEW, PlannerError, load_config
 
-ROOT = Path(__file__).resolve().parents[1]
 OUT_BASE = Path(os.environ.get("FRESHROOTS_OUTPUTS", ROOT / "outputs"))
 CONFIG = Path(os.environ.get("FRESHROOTS_CONFIG", ROOT / "config.yaml"))
 DATA_DIR = ROOT / "data" / "raw"
