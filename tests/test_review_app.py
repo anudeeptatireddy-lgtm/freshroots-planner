@@ -46,6 +46,8 @@ def test_generation_blocked_until_every_exception_decided(run_dir):
     [b for b in at.button if b.key == "generate"][0].click().run()
     assert not at.exception
     assert (run_dir / "purchase_orders_zoho_import.csv").exists()
+    keys = {b.key for b in at.get("download_button")}
+    assert {"dl_zoho", "dl_handoff", "dl_log2"} <= keys and any(k.startswith("dl_PO_") for k in keys)   # persist after rerun
     z = pd.read_csv(run_dir / "purchase_orders_zoho_import.csv")
     assert last.sku_id not in set(z["SKU"]) or last.order_qty == 0
 

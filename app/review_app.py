@@ -54,7 +54,7 @@ with st.expander("Run the planner" + (" (no runs yet)" if not runs else ""), exp
     bad = [u.name for u in uploads or [] if u.name not in UPLOADABLE]
     if bad:
         st.error(f"Unrecognised file name(s): {', '.join(bad)}. Expected: {', '.join(UPLOADABLE)}")
-    if st.button("Run planner now", disabled=bool(bad), key="run_now"):
+    if st.button("Run planning", disabled=bool(bad), key="run_now"):
         try:
             run_planner(uploads)
             st.rerun()
@@ -153,20 +153,27 @@ if blocked:
 if st.button("Generate purchase orders", type="primary", disabled=blocked, key="generate"):
     try:
         if not reviewer.strip():
-            raise PlannerError("Enter your name in the sidebar first")
+            raise PlannerError("Enter your name at the top of the page first")
         undecided_auto = auto[~auto.sku_id.isin(set(decisions.sku_id) if not decisions.empty else set())]
         review.append_log(log_path, [review.make_decision(r.sku_id, r.order_qty, "approve", review.AUTO_REVIEWER) for r in undecided_auto.itertuples()])
-        res = outputs.finalize_run(run_dir, cfg)
-        st.success(f"{res['lines'].po_number.nunique() if not res['lines'].empty else 0} PO(s) written to {run_dir}")
-        stt = res["stats"]
-        st.write(f"Override rate: {'n/a' if stt['override_rate'] is None else format(stt['override_rate'], '.0%')} ({stt['overrides']} of {stt['decided_lines']} lines)")
-        if not res["lines"].empty:
-            st.dataframe(res["lines"].drop(columns="is_urgent"), use_container_width=True)
-        for p in res["pdfs"]:
-            st.download_button(f"Download {p.name}", p.read_bytes(), file_name=p.name, mime="application/pdf", key=f"dl_{p.name}")
-        if (run_dir / "purchase_orders_zoho_import.csv").exists():
-            st.download_button("Download Zoho import CSV", (run_dir / "purchase_orders_zoho_import.csv").read_bytes(),
-                               file_name="purchase_orders_zoho_import.csv", key="dl_zoho")
-        st.download_button("Download sourcing handoff", (run_dir / "sourcing_handoff.md").read_bytes(), file_name="sourcing_handoff.md", key="dl_handoff")
+        outputs.finalize_run(run_dir, cfg)
+        st.rerun()
     except PlannerError as e:
         st.error(str(e))
+
+# Downloads are read from the run folder, so they survive reruns (a download click reruns the page).
+if (run_dir / "sourcing_handoff.md").exists():
+    import json
+    rl = json.loads((run_dir / "run_log.json").read_text())
+    st.success(f"{rl.get('po_count', 0)} PO(s), {rl.get('po_line_count', 0)} line(s) generated; {rl.get('lines_held_back', 0)} line(s) held back.")
+    rate = rl.get("override_rate")
+    st.write(f"Override rate: {'n/a' if rate is None or not rl.get('human_decisions') else format(rate, '.0%')} "
+             f"({rl.get('override_count')} of {rl.get('lines_decided')} lines)")
+    zoho = run_dir / "purchase_orders_zoho_import.csv"
+    if zoho.exists():
+        st.dataframe(pd.read_csv(zoho), use_container_width=True)
+        st.download_button("Download Zoho import CSV", zoho.read_bytes(), file_name=zoho.name, mime="text/csv", key="dl_zoho")
+    for p in sorted(run_dir.glob("PO_*.pdf")):
+        st.download_button(f"Download {p.name}", p.read_bytes(), file_name=p.name, mime="application/pdf", key=f"dl_{p.name}")
+    st.download_button("Download sourcing handoff", (run_dir / "sourcing_handoff.md").read_bytes(), file_name="sourcing_handoff.md", key="dl_handoff")
+    st.download_button("Download review_log.csv", log_path.read_bytes(), file_name=f"review_log_{run_dir.name}.csv", key="dl_log2")
