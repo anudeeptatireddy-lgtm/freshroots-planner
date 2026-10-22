@@ -111,9 +111,9 @@ n_done = len(needs) - len(pending)
 with st.container(key="stats"):
     s = st.columns(4)
     s[0].metric("SKUs", len(table))
-    s[1].metric("To review", len(pending))
+    s[1].metric("Review", len(needs))
     s[2].metric("Auto", len(auto))
-    s[3].metric("Decided", n_done)
+    s[3].metric("No order", len(table) - len(needs) - len(auto), help="Healthy or overstocked: no order this run. See All SKUs.")
 if len(needs):
     st.progress(n_done / len(needs), text=f"{n_done} of {len(needs)} exceptions decided")
 

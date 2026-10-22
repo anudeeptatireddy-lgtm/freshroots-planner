@@ -32,7 +32,8 @@ def test_summary_and_generation_blocked_until_every_exception_decided(run_dir):
     at = fresh()
     assert btn(at, "generate").disabled
     assert any("Cannot generate POs yet: 4 exception(s)" in e.value for e in at.error)
-    assert [m.value for m in at.metric] == ["15", "4", "2", "0"]
+    assert [m.value for m in at.metric] == ["15", "4", "2", "9"]
+    assert at.get("progress")[0].proto.text == "0 of 4 exceptions decided"
 
     t = outputs.load_planning_table(run_dir)
     ex = t[t.status == "NEEDS_REVIEW"]
@@ -66,7 +67,7 @@ def test_one_tap_decisions_require_a_name_and_are_logged(run_dir):
     r = log.iloc[0]
     assert (r.system_qty, r.final_qty, r.decision, r.reviewer, r.note) == (300, 309, "edit", "Raghav", "top up to 6 weeks")
     assert r.timestamp
-    assert [m.value for m in fresh().metric][3] == "1"           # decided counter moves
+    assert fresh().get("progress")[0].proto.text == "1 of 4 exceptions decided"     # progress moves
 
 
 def test_approve_reject_and_edit_buttons(run_dir):
@@ -90,4 +91,4 @@ def test_app_runs_planner_itself_when_no_runs(tmp_path, monkeypatch):
     btn(at, "run_now").click().run()
     assert not at.exception
     assert (tmp_path / "2026-10-19" / "planning_table.csv").exists()
-    assert [m.value for m in at.metric][:3] == ["15", "4", "2"]
+    assert [m.value for m in at.metric] == ["15", "4", "2", "9"]
