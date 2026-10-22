@@ -74,3 +74,14 @@ def test_save_decision_through_form_requires_name(run_dir):
     r = log.iloc[0]
     assert (r.system_qty, r.final_qty, r.decision, r.reviewer, r.note) == (300, 309, "edit", "Raghav", "top up to 6 weeks")
     assert r.timestamp
+
+
+def test_app_runs_planner_itself_when_no_runs(tmp_path, monkeypatch):
+    monkeypatch.setenv("FRESHROOTS_OUTPUTS", str(tmp_path))
+    at = AppTest.from_file(APP, default_timeout=60)
+    at.run()
+    assert not at.exception and [b for b in at.button if b.key == "run_now"]      # empty state offers a run
+    [b for b in at.button if b.key == "run_now"][0].click().run()
+    assert not at.exception
+    assert (tmp_path / "2026-10-19" / "planning_table.csv").exists()
+    assert [m.value for m in at.metric][:3] == ["15", "4", "2"]

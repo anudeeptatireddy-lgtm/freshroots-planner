@@ -128,13 +128,12 @@ Off by default (`ai_summary.enabled: false`). When enabled, with `anthropic` ins
 It cannot change a flag, quantity or approval: the PO tables are always built from the data, and any failure or missing key falls
 back to the template summary. The prompt and model name are in `config.yaml`.
 
-## Phone / web version (Vercel)
+## Phone / hosted use
 
-`api/index.py` (Flask) and `web/index.html` are a mobile-friendly version of the review screen that runs on Vercel
-(`vercel.json`). Vercel has no writable disk, so it is stateless: it re-runs the pipeline on the bundled `data/raw`
-files, keeps your decisions in the phone's browser, and on "Generate" returns the POs, Zoho CSV, PDFs, handoff note and
-`review_log.csv` as downloads. Save `review_log.csv` each run: it is the record behind the override rate.
-To plan a new SAP export, replace the CSVs in `data/raw/` and redeploy.
+The review app is Streamlit, so host it where a server can run (Streamlit Community Cloud: share.streamlit.io, main file
+`app/review_app.py`; `requirements.txt` installs the package). Vercel cannot run Streamlit. Hosted disks are wiped on restart,
+so use "Download review_log.csv" in the app after each review: it is the record behind the override rate.
+The app can run the planner itself ("Run the planner" section) on the bundled `data/raw` files or on CSVs you upload.
 
 ## Layout
 

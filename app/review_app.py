@@ -14,22 +14,62 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT_BASE = Path(os.environ.get("FRESHROOTS_OUTPUTS", ROOT / "outputs"))
 CONFIG = Path(os.environ.get("FRESHROOTS_CONFIG", ROOT / "config.yaml"))
 
-st.set_page_config(page_title="Freshroots review", layout="wide")
+st.set_page_config(page_title="Freshroots review", layout="centered")
 st.title("Freshroots demand planning: review")
 
-# ---- choose run ------------------------------------------------------------------------
-runs = sorted((p for p in OUT_BASE.glob("*") if (p / "planning_table.csv").exists()), reverse=True) if OUT_BASE.exists() else []
-if not runs:
-    st.error(f"No runs found in {OUT_BASE}. Run `python -m planner run` first.")
-    st.stop()
-with st.sidebar:
-    run_dir = st.selectbox("Run", runs, format_func=lambda p: p.name)
-    reviewer = st.text_input("Your name (required to save decisions)", key="reviewer")
-    st.caption("Decisions are appended to review_log.csv in the run folder.")
-
 cfg = load_config(CONFIG)
+DATA_DIR = ROOT / "data" / "raw"
+UPLOADABLE = ["weekly_sales.csv", "sku_master.csv", "distributor_master.csv", "current_inventory.csv", "calendar.csv",
+              "open_purchase_orders.csv", "sku_prices.csv", "distributor_sales.csv"]
+
+
+def list_runs() -> list[Path]:
+    if not OUT_BASE.exists():
+        return []
+    return sorted((p for p in OUT_BASE.glob("*") if (p / "planning_table.csv").exists()), reverse=True)
+
+
+def run_planner(uploads) -> None:
+    """Run stages 1-6 on the bundled data, with any uploaded CSVs replacing the bundled ones."""
+    import shutil
+    import tempfile
+
+    from planner.outputs import write_run
+    from planner.pipeline import run_pipeline
+    with tempfile.TemporaryDirectory() as tmp:
+        for f in DATA_DIR.glob("*.csv"):
+            shutil.copy(f, Path(tmp) / f.name)
+        for up in uploads or []:
+            (Path(tmp) / up.name).write_bytes(up.getvalue())
+        result = run_pipeline(tmp, None, cfg)
+        OUT_BASE.mkdir(parents=True, exist_ok=True)
+        write_run(result, cfg, OUT_BASE)
+
+
+# ---- choose run (on the main page so it is reachable on a phone) -------------------------
+runs = list_runs()
+with st.expander("Run the planner" + (" (no runs yet)" if not runs else ""), expanded=not runs):
+    st.caption("Uses the files in data/raw. Upload fresh SAP exports below to replace any of them (same file names and columns).")
+    uploads = st.file_uploader("Replace input files (optional)", type="csv", accept_multiple_files=True, key="uploads")
+    bad = [u.name for u in uploads or [] if u.name not in UPLOADABLE]
+    if bad:
+        st.error(f"Unrecognised file name(s): {', '.join(bad)}. Expected: {', '.join(UPLOADABLE)}")
+    if st.button("Run planner now", disabled=bool(bad), key="run_now"):
+        try:
+            run_planner(uploads)
+            st.rerun()
+        except PlannerError as e:
+            st.error(str(e))
+runs = list_runs()
+if not runs:
+    st.stop()
+run_dir = st.selectbox("Run", runs, format_func=lambda p: p.name)
+reviewer = st.text_input("Your name (required to save decisions)", key="reviewer")
 table = outputs.load_planning_table(run_dir)
 log_path = run_dir / "review_log.csv"
+if log_path.exists():
+    st.download_button("Download review_log.csv", log_path.read_bytes(), file_name=f"review_log_{run_dir.name}.csv", key="dl_log",
+                       help="Hosted disks are wiped on restart: keep a copy after each review.")
 decisions = review.latest_decisions(review.read_log(log_path))
 decided = decisions.set_index("sku_id") if not decisions.empty else pd.DataFrame()
 pending = review.pending_review(table, decisions)
