@@ -1,5 +1,27 @@
+# .streamlit/config.toml  ·  Freshroots review UI
+# Streamlit 1.46+ reads separate light and dark palettes; the viewer's
+# Settings › Theme (or their OS) picks one. On an older version, delete the
+# [theme.light] / [theme.dark] tables and put the light values under [theme].
+# Fonts: system fonts are applied in app/style.css (--fr-font).
+
 [theme]
-primaryColor = "#1f6f50"
+baseRadius = "8px"
+
+[theme.light]
+primaryColor = "#1F6F50"
+backgroundColor = "#F7F6F2"
+secondaryBackgroundColor = "#EFEDE6"
+textColor = "#1B1F1C"
+borderColor = "#DEDAD0"
+linkColor = "#1F6F50"
+
+[theme.dark]
+primaryColor = "#2A7D5B"
+backgroundColor = "#111412"
+secondaryBackgroundColor = "#232826"
+textColor = "#E7EAE6"
+borderColor = "#2F3532"
+linkColor = "#6FCFA3"
 
 [browser]
 gatherUsageStats = false
