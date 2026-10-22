@@ -2,10 +2,11 @@
 name = "freshroots-planner"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["pandas", "pyyaml", "streamlit", "reportlab"]
+dependencies = ["pandas", "pyyaml", "reportlab", "flask"]
 
 [project.optional-dependencies]
 dev = ["pytest", "pypdf"]
+app = ["streamlit"]
 ai = ["anthropic"]
 
 [build-system]

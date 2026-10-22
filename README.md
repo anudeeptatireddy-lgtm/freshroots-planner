@@ -12,8 +12,8 @@ the rules goes to a person as an exception.
 Python 3.11+.
 
 ```bash
-uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -e ".[dev]"
-# or: python -m venv .venv && .venv/bin/pip install -e ".[dev]"
+uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -e ".[dev,app]"
+# or: python -m venv .venv && .venv/bin/pip install -e ".[dev,app]"
 ```
 
 ## Run
@@ -127,6 +127,14 @@ Off by default (`ai_summary.enabled: false`). When enabled, with `anthropic` ins
 `ANTHROPIC_API_KEY` set, it rewrites the run-summary text in `sourcing_handoff.md` from `planning_table.csv` and `review_log.csv`.
 It cannot change a flag, quantity or approval: the PO tables are always built from the data, and any failure or missing key falls
 back to the template summary. The prompt and model name are in `config.yaml`.
+
+## Phone / web version (Vercel)
+
+`api/index.py` (Flask) and `web/index.html` are a mobile-friendly version of the review screen that runs on Vercel
+(`vercel.json`). Vercel has no writable disk, so it is stateless: it re-runs the pipeline on the bundled `data/raw`
+files, keeps your decisions in the phone's browser, and on "Generate" returns the POs, Zoho CSV, PDFs, handoff note and
+`review_log.csv` as downloads. Save `review_log.csv` each run: it is the record behind the override rate.
+To plan a new SAP export, replace the CSVs in `data/raw/` and redeploy.
 
 ## Layout
 
