@@ -80,6 +80,10 @@ def open_card(r, cur, reopened: bool, reviewer: str, save: Save) -> None:
     sku = r.sku_id
     with st.container(border=True, key=f"card-open-{sku}"):
         st.markdown(_head(r) + _table(r), unsafe_allow_html=True)
+        system = int(r.order_qty)
+        if st.button(f"Approve · {system:,}" if system else "Approve · 0 (paused)", key=f"approve-{sku}", type="primary",
+                     width="stretch", disabled=not reviewer.strip(), help="Accept the rules' quantity as it is."):
+            save(sku, r.order_qty, "approve", float(system), st.session_state.get(f"note-{sku}", ""))
         st.markdown("".join(fr.callout(code, reason) for code, reason in _parts(r)), unsafe_allow_html=True)
         st.markdown(_facts(r), unsafe_allow_html=True)
         with st.expander("How the rules decided"):

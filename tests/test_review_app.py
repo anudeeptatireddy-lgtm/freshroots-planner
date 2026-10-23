@@ -109,3 +109,13 @@ def test_app_runs_planner_itself_when_no_runs(tmp_path, monkeypatch):
     assert not at.exception
     assert (tmp_path / "2026-10-19" / "planning_table.csv").exists()
     assert [m.value for m in at.metric][:4] == ["15", "4", "2", "9"]
+
+
+def test_quick_approve_under_the_table(run_dir):
+    at = fresh()
+    assert btn(at, "approve-SKU001").disabled and btn(at, "approve-SKU001").label == "Approve · 750"     # needs a name first
+    at = with_name(at)
+    btn(at, "approve-SKU001").click().run()
+    log = review.read_log(run_dir / "review_log.csv")
+    assert [(r.sku_id, r.final_qty, r.decision, r.reviewer) for r in log.itertuples()] == [("SKU001", 750, "approve", "Raghav")]
+    assert btn(fresh(), "approve-SKU007").label == "Approve · 0 (paused)"
