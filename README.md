@@ -128,6 +128,23 @@ Off by default (`ai_summary.enabled: false`). When enabled, with `anthropic` ins
 It cannot change a flag, quantity or approval: the PO tables are always built from the data, and any failure or missing key falls
 back to the template summary. The prompt and model name are in `config.yaml`.
 
+## Database (Neon Postgres)
+
+Runs, decisions and PO files can be stored in Postgres so nothing is lost when a hosted disk is wiped.
+It is optional: with no database configured the app works on local files exactly as before.
+
+- **Where:** Neon project `freshroots-planner` (default branch holds real data; branch `tests` is for the test-suite).
+- **Turn it on:** set `DATABASE_URL` as an environment variable, or in `.streamlit/secrets.toml` locally
+  (gitignored), or in the app's **Secrets** panel on Streamlit Cloud: `DATABASE_URL = "postgresql://..."`.
+  Copy the string from the Neon console (Connect). Never commit it.
+- **Tables** (created automatically): `runs`, `run_files` (every output file, including PO PDFs), `planning_lines`,
+  `data_issues`, `decisions` (append-only; last row per SKU stands), `purchase_order_lines`.
+- **How it works:** the pipeline still writes a run folder; `planner.store.Store.save_run` mirrors it into Postgres and
+  `materialize` rebuilds folders from Postgres at the start of each page load. Each Approve / Reject tap saves the decision
+  immediately. The scheduled CLI run saves to the database too when `DATABASE_URL` is set.
+- **Tests:** `tests/test_store.py` runs against the `tests` branch via `TEST_DATABASE_URL` (in `.env.local`, gitignored)
+  and is skipped when it is not set. The rest of the suite never touches the database (`FRESHROOTS_DISABLE_DB`).
+
 ## Phone / hosted use
 
 The review app is Streamlit, so host it where a server can run (Streamlit Community Cloud: share.streamlit.io, main file

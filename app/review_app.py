@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -17,6 +18,7 @@ from cards import auto_card, done_card, open_card
 
 from planner import outputs, review
 from planner.common import STATUS_AUTO, STATUS_REVIEW, PlannerError, load_config
+from planner.store import Store
 
 OUT_BASE = Path(os.environ.get("FRESHROOTS_OUTPUTS", ROOT / "outputs"))
 CONFIG = Path(os.environ.get("FRESHROOTS_CONFIG", ROOT / "config.yaml"))
@@ -33,6 +35,51 @@ if st.session_state.get("flash"):
     st.toast(st.session_state.pop("flash"))
 
 cfg = load_config(CONFIG)
+RECENT_RUNS = 8     # newest runs rebuilt from the database on each page load; older ids are only reserved
+
+
+def get_dsn() -> str | None:
+    """Database URL: env var first (tests, scheduled runs), then Streamlit secrets. FRESHROOTS_DISABLE_DB forces files-only."""
+    if os.environ.get("FRESHROOTS_DISABLE_DB"):
+        return None
+    if os.environ.get("DATABASE_URL"):
+        return os.environ["DATABASE_URL"]
+    try:
+        return st.secrets["DATABASE_URL"]
+    except Exception:       # no secrets file / key
+        return None
+
+
+@st.cache_resource
+def get_store(dsn: str, schema: str) -> Store:
+    store = Store(dsn, schema)
+    store.ensure_schema()
+    return store
+
+
+store, db_note = None, "Local files only. Nothing is saved to a database."
+if get_dsn():
+    try:
+        store = get_store(get_dsn(), os.environ.get("FRESHROOTS_DB_SCHEMA", "public"))
+        st.session_state.setdefault("workdir", tempfile.mkdtemp(prefix="freshroots_"))
+        OUT_BASE = Path(st.session_state.workdir)           # scratch copy; Postgres is the source of truth
+        run_ids = store.list_runs()
+        store.reserve(run_ids[RECENT_RUNS:], OUT_BASE)
+        store.materialize(run_ids[:RECENT_RUNS], OUT_BASE)
+        db_note = "Saved to the Neon database."
+    except Exception as exc:                                  # unreachable DB must not take the app down
+        store = None
+        st.warning(f"Database unavailable ({type(exc).__name__}). Working with local files only; nothing will be saved to Neon.")
+
+
+def sync_up(run_dir: Path, decisions_only: bool = False) -> None:
+    """Mirror a changed run folder to Postgres (no-op without a database)."""
+    if not store:
+        return
+    try:
+        store.save_decisions(run_dir) if decisions_only else store.save_run(run_dir, cfg)
+    except Exception as exc:
+        st.error(f"Could not save to the database ({type(exc).__name__}). Your change is only on this server.")
 
 
 def list_runs() -> list[Path]:
@@ -57,7 +104,8 @@ def uploader(key: str):
 
 def start_run(ups) -> None:
     try:
-        outputs.plan_with_overrides(DATA_DIR, {u.name: u.getvalue() for u in ups or []}, cfg, OUT_BASE)
+        new_dir = outputs.plan_with_overrides(DATA_DIR, {u.name: u.getvalue() for u in ups or []}, cfg, OUT_BASE)
+        sync_up(new_dir)
     except PlannerError as e:
         st.error(str(e))
         return
@@ -85,6 +133,7 @@ with st.expander("Run details and new run"):
     run_dir = st.selectbox("Run", runs, format_func=lambda p: p.name, help="One planning snapshot, named by the stock-count date.")
     files = list(json.loads((run_dir / "run_log.json").read_text()).get("file_hashes_sha256", {}))
     st.caption("Source files: " + ", ".join(files))
+    st.caption(db_note)
     ups, bad = uploader("uploads")
     if st.button("Start a new run", key="new_run", type="secondary", width="stretch", disabled=bad):
         start_run(ups)
@@ -112,6 +161,7 @@ def save_decision(sku: str, system_qty: float, action: str, qty: float, note: st
     except PlannerError as e:
         st.error(str(e))
         return
+    sync_up(run_dir, decisions_only=True)
     st.session_state.reopen.pop(sku, None)
     st.session_state.flash = f"Saved: {sku} {PAST[action]} at {int(qty):,}."
     st.rerun()
@@ -167,6 +217,7 @@ with t_orders:
                 if not reviewer.strip():
                     raise PlannerError("Enter your name at the top of the page first")
                 outputs.generate_pos(run_dir, cfg)
+                sync_up(run_dir)
                 st.rerun()
             except PlannerError as e:
                 st.error(str(e))

@@ -4,10 +4,23 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+from pathlib import Path
 
 from planner import outputs, review
 from planner.common import PlannerError, load_config
 from planner.pipeline import run_pipeline
+from planner.store import Store, dsn_from_env
+
+
+def _save_to_database(run_dir, cfg) -> None:
+    """If DATABASE_URL is set (e.g. in the twice-weekly scheduled run), mirror the run into Postgres."""
+    dsn = dsn_from_env()
+    if not dsn:
+        return
+    store = Store(dsn)
+    store.ensure_schema()
+    store.save_run(run_dir, cfg)
+    print(f"  saved to database as run {run_dir.name}")
 
 
 def _cmd_run(args) -> int:
@@ -32,6 +45,7 @@ def _cmd_run(args) -> int:
               f"{len(res['held'])} line(s) held for review")
     else:
         print("  next: streamlit run app/review_app.py   (review exceptions, then generate POs)")
+    _save_to_database(run_dir, cfg)
     return 0
 
 
@@ -39,6 +53,7 @@ def _cmd_generate(args) -> int:
     cfg = load_config(args.config)
     res = outputs.finalize_run(args.run_dir, cfg)
     print(f"{res['lines'].po_number.nunique() if not res['lines'].empty else 0} PO(s) written to {args.run_dir}")
+    _save_to_database(Path(args.run_dir), cfg)
     return 0
 
 

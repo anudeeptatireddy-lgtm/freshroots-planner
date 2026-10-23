@@ -6,3 +6,7 @@ outputs/*
 !outputs/.gitkeep
 .DS_Store
 .vercel
+build/
+.streamlit/secrets.toml
+.env
+.env.local

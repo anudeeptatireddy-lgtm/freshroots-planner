@@ -10,6 +10,13 @@ ROOT = Path(__file__).resolve().parents[1]
 RUN_DATE = dt.date(2026, 10, 19)
 
 
+@pytest.fixture(autouse=True)
+def _never_touch_the_real_database(monkeypatch):
+    """The app reads DATABASE_URL from .streamlit/secrets.toml; tests must never write to that database."""
+    monkeypatch.setenv("FRESHROOTS_DISABLE_DB", "1")
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+
 @pytest.fixture(scope="session")
 def root():
     return ROOT
