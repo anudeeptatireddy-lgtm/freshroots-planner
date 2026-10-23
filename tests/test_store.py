@@ -128,3 +128,15 @@ def test_app_saves_to_and_reloads_from_the_database(store, cfg, tmp_path, monkey
     assert not at2.exception
     assert [m.value for m in at2.metric][:4] == ["15", "4", "2", "9"]
     assert at2.get("progress")[0].proto.text == "1 of 4 exceptions decided"
+
+
+def test_seed_reference_data_is_complete_and_idempotent(store, cfg):
+    counts = store.seed_reference_data(ROOT / "data" / "raw", cfg)
+    assert counts == {"distributors": 4, "sku_master": 15, "weekly_sales": 240, "inventory_snapshots": 15, "calendar": 24}
+    store.seed_reference_data(ROOT / "data" / "raw", cfg)                      # running twice changes nothing
+    with store._connect() as conn:
+        n = {t: conn.execute(f"SELECT count(*) FROM {store.s}.{t}").fetchone()[0] for t in counts}
+        assert n == counts
+        assert conn.execute(f"SELECT units_sold FROM {store.s}.weekly_sales WHERE sku_id='SKU001' AND week='2026-W42'").fetchone()[0] == 259
+        assert conn.execute(f"SELECT week_start FROM {store.s}.weekly_sales WHERE week='2026-W42' LIMIT 1").fetchone()[0].isoformat() == "2026-10-12"
+        assert conn.execute(f"SELECT count(*) FROM {store.s}.calendar WHERE is_festival_month").fetchone()[0] == 6

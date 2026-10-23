@@ -15,7 +15,8 @@ import pandas as pd
 import psycopg
 
 from planner import review
-from planner.common import PlannerError
+from planner.common import PlannerError, parse_date, parse_iso_week
+from planner.load import load_all
 
 SCHEMA_SQL = """
 CREATE SCHEMA IF NOT EXISTS {s};
@@ -60,6 +61,24 @@ CREATE TABLE IF NOT EXISTS {s}.decisions (
     decided_at text NOT NULL
 );
 CREATE INDEX IF NOT EXISTS decisions_run_sku ON {s}.decisions (run_id, sku_id);
+CREATE TABLE IF NOT EXISTS {s}.distributors (
+    distributor_id text PRIMARY KEY, distributor_name text NOT NULL, region text, status text
+);
+CREATE TABLE IF NOT EXISTS {s}.sku_master (
+    sku_id text PRIMARY KEY, sku_name text NOT NULL, category text, perishability text,
+    standard_reorder_qty integer, unit_of_measure text, distributor_id text
+);
+CREATE TABLE IF NOT EXISTS {s}.weekly_sales (
+    sku_id text NOT NULL, week text NOT NULL, week_start date NOT NULL, units_sold integer,
+    PRIMARY KEY (sku_id, week_start)
+);
+CREATE TABLE IF NOT EXISTS {s}.inventory_snapshots (
+    sku_id text NOT NULL, location text NOT NULL, units_on_hand integer, as_of_date date NOT NULL,
+    PRIMARY KEY (sku_id, location, as_of_date)
+);
+CREATE TABLE IF NOT EXISTS {s}.calendar (
+    year_month text PRIMARY KEY, year integer NOT NULL, month integer NOT NULL, is_festival_month boolean NOT NULL
+);
 CREATE TABLE IF NOT EXISTS {s}.purchase_order_lines (
     id bigserial PRIMARY KEY,
     run_id text NOT NULL REFERENCES {s}.runs(run_id) ON DELETE CASCADE,
@@ -93,6 +112,45 @@ class Store:
         with self._connect() as conn:
             rows = conn.execute(sql + (" LIMIT %s" if limit else ""), (limit,) if limit else ()).fetchall()
         return [r[0] for r in rows]
+
+    # ---- reference data --------------------------------------------------------------------
+    def seed_reference_data(self, data_dir: str | Path, cfg: dict) -> dict[str, int]:
+        """Load the input CSVs (master data, weekly sales, stock counts, calendar) into their tables. Idempotent."""
+        raw, _ = load_all(data_dir, cfg)
+        s = self.s
+
+        def rows(key, cols, convert):
+            out = []
+            for r in raw[key].to_dict("records"):
+                out.append(convert(*[str(r[c]).strip() for c in cols]))
+            return out
+
+        def to_int(v):
+            return int(float(v)) if v != "" else None
+
+        dist = rows("distributors", ["Distributor_ID", "Distributor_Name", "Region", "Status"], lambda a, b, c, d: (a, b, c, d))
+        skus = rows("sku_master", ["SKU_ID", "SKU_Name", "Category", "Perishability", "Standard_Reorder_Qty", "Unit_of_Measure", "Distributor_ID"],
+                    lambda a, b, c, d, e, f, g: (a, b, c, d, to_int(e), f, g))
+        sales = rows("sales", ["SKU_ID", "Week", "Units_Sold"], lambda a, w, u: (a, w, parse_iso_week(w), to_int(u)))
+        stock = rows("inventory", ["SKU_ID", "Location", "Units_On_Hand", "As_Of_Date"], lambda a, loc, u, d: (a, loc, to_int(u), parse_date(d)))
+        cal = rows("calendar", ["Year_Month", "Year", "Month", "Is_Festival_Month"], lambda ym, y, m, f: (ym, to_int(y), to_int(m), f.upper() == "TRUE"))
+        if any(r[2] is None for r in sales) or any(r[3] is None for r in stock):
+            raise PlannerError("Cannot load reference data: a week or date could not be parsed")
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.executemany(f"INSERT INTO {s}.distributors VALUES (%s,%s,%s,%s) ON CONFLICT (distributor_id) DO UPDATE SET "
+                            f"distributor_name=EXCLUDED.distributor_name, region=EXCLUDED.region, status=EXCLUDED.status", dist)
+            cur.executemany(f"INSERT INTO {s}.sku_master VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (sku_id) DO UPDATE SET "
+                            f"sku_name=EXCLUDED.sku_name, category=EXCLUDED.category, perishability=EXCLUDED.perishability, "
+                            f"standard_reorder_qty=EXCLUDED.standard_reorder_qty, unit_of_measure=EXCLUDED.unit_of_measure, "
+                            f"distributor_id=EXCLUDED.distributor_id", skus)
+            cur.executemany(f"INSERT INTO {s}.weekly_sales VALUES (%s,%s,%s,%s) ON CONFLICT (sku_id, week_start) DO UPDATE SET "
+                            f"week=EXCLUDED.week, units_sold=EXCLUDED.units_sold", sales)
+            cur.executemany(f"INSERT INTO {s}.inventory_snapshots VALUES (%s,%s,%s,%s) ON CONFLICT (sku_id, location, as_of_date) "
+                            f"DO UPDATE SET units_on_hand=EXCLUDED.units_on_hand", stock)
+            cur.executemany(f"INSERT INTO {s}.calendar VALUES (%s,%s,%s,%s) ON CONFLICT (year_month) DO UPDATE SET "
+                            f"year=EXCLUDED.year, month=EXCLUDED.month, is_festival_month=EXCLUDED.is_festival_month", cal)
+        return {"distributors": len(dist), "sku_master": len(skus), "weekly_sales": len(sales),
+                "inventory_snapshots": len(stock), "calendar": len(cal)}
 
     # ---- write ---------------------------------------------------------------------------
     def save_run(self, run_dir: str | Path, cfg: dict) -> None:

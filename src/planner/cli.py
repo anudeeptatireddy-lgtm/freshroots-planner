@@ -57,6 +57,18 @@ def _cmd_generate(args) -> int:
     return 0
 
 
+def _cmd_db_seed(args) -> int:
+    dsn = dsn_from_env()
+    if not dsn:
+        raise PlannerError("DATABASE_URL is not set")
+    cfg = load_config(args.config)
+    store = Store(dsn)
+    store.ensure_schema()
+    for table, n in store.seed_reference_data(args.data, cfg).items():
+        print(f"  {table}: {n} rows")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="planner", description="Freshroots demand planning and PO automation")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -72,6 +84,10 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--run-dir", required=True)
     g.add_argument("--config", default="config.yaml")
     g.set_defaults(fn=_cmd_generate)
+    d = sub.add_parser("db-seed", help="Load the input CSVs (master data, sales, stock, calendar) into the database")
+    d.add_argument("--data", default="data/raw")
+    d.add_argument("--config", default="config.yaml")
+    d.set_defaults(fn=_cmd_db_seed)
     return p
 
 
