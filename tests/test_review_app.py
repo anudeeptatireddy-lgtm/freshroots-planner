@@ -38,7 +38,7 @@ def test_summary_and_generation_blocked_until_every_exception_decided(run_dir):
     assert btn(at, "generate").disabled
     assert any("4 exceptions still need a decision" in w.value for w in at.warning)
     assert [m.value for m in at.metric][:4] == ["15", "4", "2", "9"]
-    assert [t.label for t in at.tabs] == ["Review · 4", "Orders", "Auto · 2", "All SKUs"]
+    assert [t.label for t in at.tabs] == ["Review · 4", "Auto · 2", "Orders", "All SKUs"]
     assert at.get("progress")[0].proto.text == "0 of 4 exceptions decided"
 
     t = outputs.load_planning_table(run_dir)

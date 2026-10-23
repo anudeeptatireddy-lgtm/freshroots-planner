@@ -185,7 +185,7 @@ with st.container(key="stats"):
 if len(needs):
     st.progress(n_done / len(needs), text=f"{n_done} of {len(needs)} exceptions decided" if pending else f"All {len(needs)} exceptions decided")
 
-t_review, t_orders, t_auto, t_all = st.tabs([f"Review · {len(pending)}", "Orders", f"Auto · {len(auto)}", "All SKUs"])
+t_review, t_auto, t_orders, t_all = st.tabs([f"Review · {len(pending)}", f"Auto · {len(auto)}", "Orders", "All SKUs"])
 
 # ---- C. review tab ---------------------------------------------------------------------------
 with t_review:
