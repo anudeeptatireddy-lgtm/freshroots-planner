@@ -119,7 +119,8 @@ def test_app_saves_to_and_reloads_from_the_database(store, cfg, tmp_path, monkey
     [b for b in at.button if b.key == "run_now"][0].click().run()
     assert not at.exception and store.list_runs() == ["2026-10-19"]
     at.text_input(key="reviewer").set_value("Raghav").run()
-    [b for b in at.button if b.key == "btn-SKU003-0"][0].click().run()       # Use suggested · 309
+    [b for b in at.button if b.key == "sug-SKU003"][0].click().run()          # Use suggested · 309 fills the box
+    [b for b in at.button if b.key == "go-SKU003"][0].click().run()           # one tap saves it
     assert not at.exception
     assert count(store, "decisions") == 1
 

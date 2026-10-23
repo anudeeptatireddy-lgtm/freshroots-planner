@@ -213,13 +213,13 @@ def headline(now: float, after: float | None, lo: float, hi: float, system_qty: 
     return f'<p class="fr-headline"><b>{escape(first)}</b> {escape(rest)}</p>'
 
 
-def card_head_b(sku: str, name: str, supplier: str, perishable: bool, urgent: bool, headline_html: str, gauge_html: str) -> str:
+def card_head_b(sku: str, name: str, supplier: str, perishable: bool, urgent: bool, headline_html: str, gauge_html: str, extra: str = "") -> str:
     """Name + URGENT + headline + gauge as ONE markdown block. Build gauge_html with verdict=False."""
     per = "High perishability" if perishable else "Low perishability"
     urgent_html = f'<div class="fr-badges">{badge("URGENT")}</div>' if urgent else ""
     return (
         f'<div class="fr-head"><div><p class="fr-name">{escape(name)}</p>'
-        f'<p class="fr-meta">{escape(sku)} · {escape(supplier)} · {per}</p></div>{urgent_html}</div>'
+        f'<p class="fr-meta">{escape(sku)} · {escape(supplier)} · {per}</p>{extra}</div>{urgent_html}</div>'
         + headline_html + gauge_html
     )
 
@@ -284,7 +284,7 @@ def _status(cover: float, lo: float, hi: float) -> tuple[str, str]:
     return "in", "✓ OK"
 
 
-def compare_table(cols: list[tuple[str, int | None, float, float]], lo: float, hi: float) -> str:
+def compare_table(cols: list[tuple[str, int | None, float, float]], lo: float, hi: float, unit_price: float | None = None) -> str:
     """The at-a-glance table. cols = [(header, order_qty or None for 'now', stock_units, weeks_of_cover)].
     Rows: order, stock, weeks of cover, status. One column per choice, so every option reads straight down."""
     heads = []
@@ -295,12 +295,16 @@ def compare_table(cols: list[tuple[str, int | None, float, float]], lo: float, h
     order = "".join(
         '<td class="fr-na">—</td>' if q is None else f'<td class="fr-big">{q:,}</td>' if q else '<td class="fr-big fr-zero">0<small>paused</small></td>'
         for _, q, _, _ in cols)
+    value_row = ""
+    if unit_price is not None:
+        cells = "".join('<td class="fr-na">—</td>' if not q else f"<td>₹{q * unit_price:,.0f}</td>" for _, q, _, _ in cols)
+        value_row = f'<tr><th scope="row">Order value</th>{cells}</tr>'
     stock = "".join(f"<td>{u:,.0f}</td>" for _, _, u, _ in cols)
     cover = "".join(f'<td class="is-{_status(c, lo, hi)[0]}"><b>{wk(c, lo, hi)}</b></td>' for *_, c in cols)
     status = "".join(f'<td class="is-{_status(c, lo, hi)[0]}">{_status(c, lo, hi)[1]}</td>' for *_, c in cols)
     return (
         '<table class="fr-tbl"><thead><tr><th></th>' + head + "</tr></thead><tbody>"
-        f'<tr><th scope="row">Order (units)</th>{order}</tr>'
+        f'<tr><th scope="row">Order (units)</th>{order}</tr>' + value_row +
         f'<tr><th scope="row">Stock (units)</th>{stock}</tr>'
         f'<tr><th scope="row">Weeks of cover{tip("Weeks of cover", "How many weeks the stock lasts at expected demand. Festival months add a 25% uplift first.", small=True)}</th>{cover}</tr>'
         f'<tr><th scope="row">Safe range {lo:g}–{hi:g} wk{tip("Safe range", "Minimum to maximum weeks of cover for this product. Inside the range is healthy.", small=True)}</th>{status}</tr>'

@@ -572,3 +572,14 @@
 [data-testid="stMarkdownContainer"] table.fr-tbl td.is-above { color: var(--fr-warn-fg); font-weight: 650; }
 [data-testid="stMarkdownContainer"] table.fr-tbl td.is-in { color: var(--fr-good-fg); font-weight: 650; }
 [data-testid="stMarkdownContainer"] table.fr-tbl td:nth-child(3) { background: var(--fr-surface-2) !important; }
+
+/* Header: title left, upload icon pinned top-right, never wrapping on a phone */
+.st-key-hdr [data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; align-items: flex-start; gap: 8px; }
+.st-key-hdr [data-testid="stColumn"], .st-key-hdr [data-testid="column"] { min-width: 0 !important; }
+.st-key-hdr [data-testid="stColumn"]:last-child, .st-key-hdr [data-testid="column"]:last-child { flex: 0 0 auto !important; width: auto !important; }
+
+/* Quantity box beside the Approve button, and Use suggested beside Reject: stay side by side on a phone */
+[class*="st-key-bar-"] [data-testid="stHorizontalBlock"], [class*="st-key-alt-"] [data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; gap: 8px; align-items: stretch; }
+[class*="st-key-bar-"] [data-testid="stColumn"], [class*="st-key-alt-"] [data-testid="stColumn"],
+[class*="st-key-bar-"] [data-testid="column"], [class*="st-key-alt-"] [data-testid="column"] { min-width: 0 !important; }
+[class*="st-key-bar-"] button p { white-space: nowrap; font-variant-numeric: tabular-nums; }

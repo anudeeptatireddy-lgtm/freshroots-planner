@@ -59,21 +59,35 @@ def test_summary_and_generation_blocked_until_every_exception_decided(run_dir):
     assert last.sku_id not in set(z["SKU"]) or last.order_qty == 0
 
 
-def test_decision_buttons_disabled_without_a_name(run_dir):
+def test_buttons_are_live_and_ask_for_a_name_when_tapped(run_dir):
     at = fresh()
-    assert all(btn(at, k).disabled for k in ("btn-SKU001-0", "btn-SKU003-0", "btn-SKU013-2", "save-SKU007"))
-    assert any("Add your name at the top" in c.value for c in at.caption)
-    with_name(at)
-    assert not btn(at, "btn-SKU001-0").disabled
+    assert not any(btn(at, k).disabled for k in ("go-SKU001", "rej-SKU013", "sug-SKU003"))      # never greyed out
+    btn(at, "go-SKU001").click().run()
+    assert any("Enter your name at the top first" in e.value for e in at.error)
+    assert review.read_log(run_dir / "review_log.csv").empty                                    # nothing saved without a name
+    btn(with_name(at), "go-SKU001").click().run()
+    assert list(review.read_log(run_dir / "review_log.csv").sku_id) == ["SKU001"]
 
 
-def test_one_tap_use_suggested_is_logged(run_dir):
+def test_one_button_approves_or_saves_a_changed_quantity(run_dir):
+    at = with_name(fresh())
+    assert btn(at, "go-SKU001").label == "Approve · 750" and btn(at, "go-SKU007").label == "Approve · 0 (paused)"
+    at.number_input(key="qty-SKU001").set_value(700).run()                                      # the box sits beside the button
+    assert btn(at, "go-SKU001").label == "Save · 700 (changed)"
+    btn(at, "go-SKU001").click().run()
+    r = review.read_log(run_dir / "review_log.csv").iloc[0]
+    assert (r.sku_id, r.system_qty, r.final_qty, r.decision) == ("SKU001", 750, 700, "edit")
+
+
+def test_use_suggested_fills_the_box_then_one_tap_saves(run_dir):
     at = with_name(fresh())
     at.text_input(key="note-SKU003").set_value("top up to 6 weeks").run()
-    btn(at, "btn-SKU003-0").click().run()                        # primary on SKU003 = "Use suggested · 309"
+    btn(at, "sug-SKU003").click().run()
+    assert at.number_input(key="qty-SKU003").value == 309 and btn(at, "go-SKU003").label == "Save · 309 (changed)"
+    btn(at, "go-SKU003").click().run()
     log = review.read_log(run_dir / "review_log.csv")
-    assert list(log.sku_id) == ["SKU003"]
     r = log.iloc[0]
+    assert list(log.sku_id) == ["SKU003"]
     assert (r.system_qty, r.final_qty, r.decision, r.reviewer, r.note) == (300, 309, "edit", "Raghav", "top up to 6 weeks")
     assert r.timestamp
     at = fresh()
@@ -81,23 +95,24 @@ def test_one_tap_use_suggested_is_logged(run_dir):
     assert "Review · 3" in [t.label for t in at.tabs]
 
 
-def test_approve_reject_edit_and_change_decision(run_dir):
+def test_approve_reject_and_change_decision(run_dir):
     at = with_name(fresh())
-    btn(at, "btn-SKU001-0").click().run()                        # Approve · 750
-    btn(at, "btn-SKU013-2").click().run()                        # Reject · 0
-    at.number_input(key="qty-SKU007").set_value(25).run()
-    btn(at, "save-SKU007").click().run()                         # edit
+    btn(at, "go-SKU001").click().run()                           # Approve · 750
+    btn(at, "rej-SKU013").click().run()                          # Reject
     log = review.latest_decisions(review.read_log(run_dir / "review_log.csv")).set_index("sku_id")
     assert (log.loc["SKU001", "decision"], log.loc["SKU001", "final_qty"]) == ("approve", 750)
     assert (log.loc["SKU013", "decision"], log.loc["SKU013", "final_qty"]) == ("reject", 0)
-    assert (log.loc["SKU007", "decision"], log.loc["SKU007", "final_qty"]) == ("edit", 25)
 
     at = fresh()
     assert any(b.key == "change-SKU001" for b in at.button)       # decided cards offer "Change decision"
     btn(at, "change-SKU001").click().run()
-    btn(with_name(at), "btn-SKU001-0").click().run()              # re-open and re-decide: the last decision wins
-    log = review.read_log(run_dir / "review_log.csv")
-    assert (log.sku_id == "SKU001").sum() == 2                    # append-only log keeps both
+    btn(with_name(at), "go-SKU001").click().run()                 # re-open and re-decide: the last decision wins
+    assert (review.read_log(run_dir / "review_log.csv").sku_id == "SKU001").sum() == 2
+
+
+def test_cards_show_category_and_price_status(run_dir):
+    html = " ".join(m.value for m in fresh().markdown)
+    assert "Beverage · Price not in data" in html and "Condiment · Price not in data" in html
 
 
 def test_app_runs_planner_itself_when_no_runs(tmp_path, monkeypatch):
@@ -109,13 +124,3 @@ def test_app_runs_planner_itself_when_no_runs(tmp_path, monkeypatch):
     assert not at.exception
     assert (tmp_path / "2026-10-19" / "planning_table.csv").exists()
     assert [m.value for m in at.metric][:4] == ["15", "4", "2", "9"]
-
-
-def test_quick_approve_under_the_table(run_dir):
-    at = fresh()
-    assert btn(at, "approve-SKU001").disabled and btn(at, "approve-SKU001").label == "Approve · 750"     # needs a name first
-    at = with_name(at)
-    btn(at, "approve-SKU001").click().run()
-    log = review.read_log(run_dir / "review_log.csv")
-    assert [(r.sku_id, r.final_qty, r.decision, r.reviewer) for r in log.itertuples()] == [("SKU001", 750, "approve", "Raghav")]
-    assert btn(fresh(), "approve-SKU007").label == "Approve · 0 (paused)"
