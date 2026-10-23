@@ -23,6 +23,7 @@ python -m planner run --data data/raw --run-date 2026-10-19      # stages 1-6, w
 streamlit run app/review_app.py                                   # review exceptions, then generate POs
 python -m planner run --data data/raw --auto-approve-rules-only   # scheduled/test path: no human, exceptions left out
 python -m planner generate-pos --run-dir outputs/2026-10-19       # POs from review_log.csv (the app does this too)
+DATABASE_URL=... python -m planner db-seed --data data/raw        # load master data, sales, stock, calendar into Postgres
 pytest                                                            # all tests, including the acceptance table
 ```
 
@@ -147,17 +148,30 @@ It is optional: with no database configured the app works on local files exactly
 
 ## Phone / hosted use
 
-The review app is Streamlit, so host it where a server can run (Streamlit Community Cloud: share.streamlit.io, main file
-`app/review_app.py`; `requirements.txt` installs the package). Vercel cannot run Streamlit. Hosted disks are wiped on restart,
-so use "Download review_log.csv" in the app after each review: it is the record behind the override rate.
-The app can run the planner itself ("Run the planner" section) on the bundled `data/raw` files or on CSVs you upload.
+The review app is Streamlit. It is deployed on Streamlit Community Cloud (share.streamlit.io; repo `freshroots-planner`,
+branch `main`, main file `app/review_app.py`). Vercel cannot run Streamlit.
+
+- **Dependencies:** `requirements.txt` lists libraries only. The app imports the planner from `src/` in the repo, never from an
+  installed copy: Cloud caches installs when `requirements.txt` is unchanged, and an old cached copy once crashed the app.
+- **Database:** add `DATABASE_URL` in the app's **Secrets** panel so runs and decisions survive restarts (see "Database").
+  Without it the app works on local files, and hosted disks are wiped on restart: use "Review log (CSV)" after each review.
+- **Running planning:** the "Run planning" button works on the bundled `data/raw` files or on CSVs you upload.
+- **Design:** the UI follows the Claude Design handoff in `docs/HANDOFF.md` (card option B).
+
+## Open items for the team
+
+- Check the Zoho import column names (`po.zoho_columns`) against Zoho Inventory's real import screen.
+- Procurement to confirm who actually receives each PO (today: `sku_master.Distributor_ID`; see `po.vendor_overrides`).
+- Raghav to confirm the distributor-anomaly threshold (50% is a placeholder) once distributor-level sales exist.
+- Prices and open POs are not in the data: PO value is blank until `sku_prices.csv` / `open_purchase_orders.csv` are supplied.
 
 ## Layout
 
 ```
-config.yaml   data/raw/   outputs/<run_date>/
-src/planner/  load clean organise rules forecast exceptions pipeline review po handoff outputs cli
-app/review_app.py   tests/
+config.yaml   data/raw/   outputs/<run_date>/   docs/HANDOFF.md   .streamlit/config.toml (theme)
+src/planner/  load clean organise rules forecast exceptions pipeline review po handoff outputs store cli
+app/          review_app.py (page flow)  cards.py (per-line cards)  fr_html.py (HTML pieces + tooltips)  style.css
+tests/        pipeline, exceptions, CLI/PO, review app (AppTest), cards, store (Neon test branch)
 ```
 
 Each stage takes DataFrames and the config and returns DataFrames plus a list of issues; there is no hidden state, and the same inputs and
