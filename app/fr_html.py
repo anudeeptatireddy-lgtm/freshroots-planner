@@ -274,3 +274,48 @@ def file_checklist(expected: list[str], added: set[str]) -> str:
         for f in expected
     )
     return f'<ul class="fr-files">{rows}</ul>'
+
+
+def _status(cover: float, lo: float, hi: float) -> tuple[str, str]:
+    if cover < lo:
+        return "below", "↓ Low"
+    if cover > hi:
+        return "above", "↑ High"
+    return "in", "✓ OK"
+
+
+def compare_table(cols: list[tuple[str, int | None, float, float]], lo: float, hi: float) -> str:
+    """The at-a-glance table. cols = [(header, order_qty or None for 'now', stock_units, weeks_of_cover)].
+    Rows: order, stock, weeks of cover, status. One column per choice, so every option reads straight down."""
+    heads = []
+    for i, (h, *_rest) in enumerate(cols):
+        cls = ' class="is-rec"' if i == 1 else ""
+        heads.append(f'<th scope="col"{cls}>{escape(h)}</th>')
+    head = "".join(heads)
+    order = "".join(
+        '<td class="fr-na">—</td>' if q is None else f'<td class="fr-big">{q:,}</td>' if q else '<td class="fr-big fr-zero">0<small>paused</small></td>'
+        for _, q, _, _ in cols)
+    stock = "".join(f"<td>{u:,.0f}</td>" for _, _, u, _ in cols)
+    cover = "".join(f'<td class="is-{_status(c, lo, hi)[0]}"><b>{wk(c, lo, hi)}</b></td>' for *_, c in cols)
+    status = "".join(f'<td class="is-{_status(c, lo, hi)[0]}">{_status(c, lo, hi)[1]}</td>' for *_, c in cols)
+    return (
+        '<table class="fr-tbl"><thead><tr><th></th>' + head + "</tr></thead><tbody>"
+        f'<tr><th scope="row">Order (units)</th>{order}</tr>'
+        f'<tr><th scope="row">Stock (units)</th>{stock}</tr>'
+        f'<tr><th scope="row">Weeks of cover{tip("Weeks of cover", "How many weeks the stock lasts at expected demand. Festival months add a 25% uplift first.", small=True)}</th>{cover}</tr>'
+        f'<tr><th scope="row">Safe range {lo:g}–{hi:g} wk{tip("Safe range", "Minimum to maximum weeks of cover for this product. Inside the range is healthy.", small=True)}</th>{status}</tr>'
+        "</tbody></table>"
+    )
+
+
+def facts2(change_pct: float, standard_qty: int, flags: list[str]) -> str:
+    """Three compact context rows under the table (stock is already in the table)."""
+    sign = "+" if change_pct >= 0 else "−"
+    chips = "".join(badge(f) for f in flags)
+    return (
+        '<dl class="fr-facts">'
+        f'<dt>Sales, last 4 wk</dt><dd><b>{sign}{abs(change_pct):.1f}%</b> vs 12-week average</dd>'
+        f'<dt>Normal order</dt><dd><b>{standard_qty:,}</b> units</dd>'
+        f'<dt>Rules fired</dt><dd>{chips}</dd>'
+        '</dl>'
+    )

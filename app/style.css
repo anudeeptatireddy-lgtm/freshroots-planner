@@ -557,3 +557,18 @@
 /* Give the 'Cover after' cell room for "below band" at 375px */
 [class*="st-key-opt-"] [data-testid="stColumn"]:last-child,
 [class*="st-key-opt-"] [data-testid="column"]:last-child { flex: 0 0 128px !important; width: 128px !important; }
+
+/* ---------- At-a-glance comparison table (card) ---------- */
+[data-testid="stMarkdownContainer"] table.fr-tbl { width: 100%; border-collapse: collapse; margin: 14px 0 6px; font-variant-numeric: tabular-nums; border: 0 !important; }
+[data-testid="stMarkdownContainer"] table.fr-tbl th,
+[data-testid="stMarkdownContainer"] table.fr-tbl td { padding: 11px 8px; border: 0 !important; border-bottom: 1px solid var(--fr-border) !important; text-align: center; vertical-align: middle; background: transparent !important; color: var(--fr-text); }
+[data-testid="stMarkdownContainer"] table.fr-tbl thead th { font-size: 0.75rem; font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase; color: var(--fr-muted); padding-bottom: 8px; }
+[data-testid="stMarkdownContainer"] table.fr-tbl thead th.is-rec { color: var(--fr-accent-text); }
+[data-testid="stMarkdownContainer"] table.fr-tbl tbody th[scope="row"] { text-align: left; font-size: 0.875rem; font-weight: 500; color: var(--fr-muted); width: 34%; }
+[data-testid="stMarkdownContainer"] table.fr-tbl td.fr-big { font-size: 1.5rem; font-weight: 700; line-height: 1.1; }
+[data-testid="stMarkdownContainer"] table.fr-tbl td.fr-big small { display: block; font-size: 0.7rem; font-weight: 600; color: var(--fr-muted); letter-spacing: 0.04em; text-transform: uppercase; }
+[data-testid="stMarkdownContainer"] table.fr-tbl td.fr-na { color: var(--fr-muted); }
+[data-testid="stMarkdownContainer"] table.fr-tbl td.is-below { color: var(--fr-bad-fg); font-weight: 650; }
+[data-testid="stMarkdownContainer"] table.fr-tbl td.is-above { color: var(--fr-warn-fg); font-weight: 650; }
+[data-testid="stMarkdownContainer"] table.fr-tbl td.is-in { color: var(--fr-good-fg); font-weight: 650; }
+[data-testid="stMarkdownContainer"] table.fr-tbl td:nth-child(3) { background: var(--fr-surface-2) !important; }

@@ -48,3 +48,24 @@ def test_gauge_label_matches_headline_rounding(rows):
     r = rows["SKU003"]
     html = fr.gauge(r.weeks_of_cover, cards.cover_after(r, 300), r.min_weeks, r.max_weeks, False, verdict=False)
     assert "After order 5.95 wk" in html and "After order 6.0 wk" not in html
+
+
+def _text(html):
+    return re.sub(r"<[^>]+>", " ", html)
+
+
+def test_compare_table_sku013_reads_down_each_choice(rows):
+    r = rows["SKU013"]
+    html = cards._table(r)
+    assert "Now" in html and "Rules say" in html and "Suggested" in html
+    flat = " ".join(_text(html).split())
+    assert "Order (units) — 120 161" in flat
+    assert "Stock (units) 180 300 341" in flat
+    assert "Weeks of cover" in flat and "3.2 5.3 6.01" in flat
+    assert "↓ Low ↓ Low ✓ OK" in flat
+
+
+def test_compare_table_paused_and_no_suggestion(rows):
+    flat = " ".join(_text(cards._table(rows["SKU007"])).split())
+    assert "Suggested" not in flat and "0 paused" in flat           # SKU007: no order, no alternative
+    assert "Order (units) — 750" in " ".join(_text(cards._table(rows["SKU001"])).split())

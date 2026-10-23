@@ -42,21 +42,27 @@ def options_for(r) -> list[tuple[str, str, int, float | None]]:
 
 
 def _head(r) -> str:
-    perishable = r.perishability == "High"
-    supplier = r.distributor_name or r.distributor_id
+    """Name, supplier and URGENT only: the facts are in the table below."""
+    return fr.card_head_b(r.sku_id, r.sku_name, r.distributor_name or r.distributor_id, r.perishability == "High",
+                          bool(r.is_urgent) and _planned(r), "", "")
+
+
+def _table(r) -> str:
+    """Now vs what the rules say vs the suggestion, one column each."""
     if not _planned(r):
-        return fr.card_head_b(r.sku_id, r.sku_name, supplier, perishable, False,
-                              '<p class="fr-headline"><b>The rules could not plan this product.</b> See the reason below.</p>', "")
-    after = cover_after(r, r.order_qty) if r.order_qty else None
-    lo, hi = r.min_weeks, r.max_weeks
-    headline = fr.headline(r.weeks_of_cover, after, lo, hi, int(r.order_qty), perishable, "HIGH_DEMAND" in r.flag)
-    return fr.card_head_b(r.sku_id, r.sku_name, supplier, perishable, bool(r.is_urgent), headline,
-                          fr.gauge(r.weeks_of_cover, after, lo, hi, perishable, verdict=False))
+        return ""
+    pos, system = r.inventory_position, int(r.order_qty)
+    cols = [("Now", None, pos, r.weeks_of_cover), ("Rules say", system, pos + system, cover_after(r, system))]
+    if pd.notna(r.suggested_qty):
+        sug = int(r.suggested_qty)
+        cols.append(("Suggested", sug, pos + sug, cover_after(r, sug)))
+    return fr.compare_table(cols, r.min_weeks, r.max_weeks)
 
 
 def _facts(r) -> str:
     change = 0.0 if pd.isna(r.change_4w_vs_12w) else r.change_4w_vs_12w * 100
-    return fr.facts(int(r.units_on_hand) if pd.notna(r.units_on_hand) else 0, change, [f for f in r.flag.split(" + ") if f])
+    std = int(r.standard_reorder_qty) if pd.notna(r.standard_reorder_qty) else 0
+    return fr.facts2(change, std, [f for f in r.flag.split(" + ") if f])
 
 
 def _current(cur) -> str:
@@ -73,7 +79,7 @@ def _edit_quantity(r, default: int, note: str, save: Save, reviewer: str) -> Non
 def open_card(r, cur, reopened: bool, reviewer: str, save: Save) -> None:
     sku = r.sku_id
     with st.container(border=True, key=f"card-open-{sku}"):
-        st.markdown(_head(r), unsafe_allow_html=True)
+        st.markdown(_head(r) + _table(r), unsafe_allow_html=True)
         st.markdown("".join(fr.callout(code, reason) for code, reason in _parts(r)), unsafe_allow_html=True)
         st.markdown(_facts(r), unsafe_allow_html=True)
         with st.expander("How the rules decided"):
@@ -109,7 +115,7 @@ def done_card(r, cur, reopen: Callable[[str], None]) -> None:
 def auto_card(r, cur, reviewer: str, save: Save) -> None:
     sku = r.sku_id
     with st.container(border=True, key=f"card-auto-{sku}"):
-        st.markdown(_head(r), unsafe_allow_html=True)
+        st.markdown(_head(r) + _table(r), unsafe_allow_html=True)
         st.markdown(_facts(r), unsafe_allow_html=True)
         with st.expander("How the rules decided"):
             st.write(r.flag_reasons)
