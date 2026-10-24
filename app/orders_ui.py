@@ -2,27 +2,16 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import fr_html as fr
 import pandas as pd
 import streamlit as st
 from cards import NEED_NAME
+from secrets_util import secret
 
 from planner import outputs, zoho
 from planner.common import PlannerError
-
-
-def secret(name: str) -> str:
-    """A secret from the environment, else Streamlit Secrets (skipped when external services are disabled, e.g. in tests)."""
-    v = os.environ.get(name, "")
-    if not v and not os.environ.get("FRESHROOTS_DISABLE_DB"):
-        try:
-            v = st.secrets[name]
-        except Exception:
-            v = ""
-    return str(v or "")
 
 
 def zoho_values() -> dict[str, str]:
