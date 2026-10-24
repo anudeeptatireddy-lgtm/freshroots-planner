@@ -136,3 +136,41 @@ def test_settings_and_status_never_expose_values():
     assert (s.client_id, s.dc, s.org_id) == ("id", "in", "")
     with pytest.raises(PlannerError):
         zoho.ZohoClient(s, http=lambda *a, **k: {"error": "invalid_code"}).token()
+
+
+def test_exchange_code_returns_refresh_token_and_never_needs_the_network():
+    seen = {}
+
+    def fake(method, url, *, data=None, **k):
+        seen.update(url=url, data=data)
+        return {"refresh_token": "r-token", "access_token": "a"}
+
+    values = {"ZOHO_CLIENT_ID": "cid", "ZOHO_CLIENT_SECRET": "sec", "ZOHO_DC": "in"}
+    assert zoho.exchange_code(values, " the-code ", http=fake) == "r-token"
+    assert seen["url"] == "https://accounts.zoho.in/oauth/v2/token" and seen["data"]["code"] == "the-code" and seen["data"]["grant_type"] == "authorization_code"
+
+
+def test_exchange_code_explains_a_bad_or_expired_code():
+    values = {"ZOHO_CLIENT_ID": "cid", "ZOHO_CLIENT_SECRET": "sec"}
+    with pytest.raises(PlannerError, match="invalid_code.*fresh one"):
+        zoho.exchange_code(values, "bad", http=lambda *a, **k: {"error": "invalid_code"})
+    with pytest.raises(PlannerError, match="must be set first"):
+        zoho.exchange_code({}, "x", http=lambda *a, **k: {})
+
+
+def test_save_secret_replaces_or_appends_without_touching_other_lines(tmp_path):
+    f = tmp_path / "secrets.toml"
+    f.write_text('DATABASE_URL = "keep-me"\nZOHO_REFRESH_TOKEN = ""\n')
+    zoho.save_secret(f, "ZOHO_REFRESH_TOKEN", "new")
+    assert f.read_text() == 'DATABASE_URL = "keep-me"\nZOHO_REFRESH_TOKEN = "new"\n'
+    zoho.save_secret(f, "ZOHO_ORG_ID", "123")
+    assert f.read_text().splitlines() == ['DATABASE_URL = "keep-me"', 'ZOHO_REFRESH_TOKEN = "new"', 'ZOHO_ORG_ID = "123"']
+
+
+def test_zoho_token_command_writes_the_secret_and_does_not_print_it(tmp_path, monkeypatch, capsys):
+    f = tmp_path / "secrets.toml"
+    f.write_text('ZOHO_CLIENT_ID = "cid"\nZOHO_CLIENT_SECRET = "sec"\nZOHO_DC = "in"\n')
+    monkeypatch.setattr(zoho, "default_http", lambda *a, **k: {"refresh_token": "SUPER-SECRET-TOKEN"})
+    assert main(["zoho-token", "--code", "abc", "--secrets", str(f)]) == 0
+    assert 'ZOHO_REFRESH_TOKEN = "SUPER-SECRET-TOKEN"' in f.read_text()
+    assert "SUPER-SECRET-TOKEN" not in capsys.readouterr().out

@@ -170,6 +170,10 @@ branch `main`, main file `app/review_app.py`). Vercel cannot run Streamlit.
 - **Status (2026-10-24):** the Zoho client ID/secret are valid (Zoho answers `invalid_code` to a wrong code, not `invalid_client`) and the
   India data centre is right, but Zoho refuses to create an organisation for this account (HTTP 400 on `POST /api/v1/organizations`,
   three tries). Until an organisation exists there is no refresh token and nothing real to send to; the dry run is the only live-tested part.
+- **Refresh token:** generate a one-time code in the Zoho API Console (Self Client, Generate Code; scopes
+  `ZohoInventory.settings.READ,ZohoInventory.contacts.READ,ZohoInventory.items.READ,ZohoInventory.purchaseorders.CREATE,ZohoInventory.purchaseorders.READ`,
+  10 minutes), then run `python -m planner zoho-token --code <code>`. It saves `ZOHO_REFRESH_TOKEN` into `.streamlit/secrets.toml` without
+  printing it; add the same line to the Streamlit Cloud Secrets panel.
 - **Seed files:** `python -m planner zoho-files` writes `data/zoho_seed/vendors.csv` and `items.csv` for Zoho's Import screens.
 
 ## Open items for the team

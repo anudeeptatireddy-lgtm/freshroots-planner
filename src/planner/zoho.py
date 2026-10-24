@@ -49,6 +49,35 @@ def credentials_status(values: Mapping[str, str]) -> dict[str, bool]:
             for k in ("ZOHO_CLIENT_ID", "ZOHO_CLIENT_SECRET", "ZOHO_REFRESH_TOKEN", "ZOHO_ORG_ID")}
 
 
+def exchange_code(values: Mapping[str, str], code: str, http: Http | None = None) -> str:
+    """One-time: turn a Self Client grant code into a long-lived refresh token."""
+    http = http or default_http
+    cid, secret = str(values.get("ZOHO_CLIENT_ID", "")).strip(), str(values.get("ZOHO_CLIENT_SECRET", "")).strip()
+    if not (cid and secret):
+        raise PlannerError("ZOHO_CLIENT_ID and ZOHO_CLIENT_SECRET must be set first")
+    dc = str(values.get("ZOHO_DC", "") or "in").strip()
+    out = http("POST", f"https://accounts.zoho.{dc}/oauth/v2/token",
+               data={"grant_type": "authorization_code", "client_id": cid, "client_secret": secret, "code": code.strip()})
+    if not out.get("refresh_token"):
+        raise PlannerError(f"Zoho did not return a refresh token ({out.get('error', 'unknown error')}). "
+                           "Codes last about 10 minutes and work once: generate a fresh one.")
+    return out["refresh_token"]
+
+
+def save_secret(secrets_path: str | Path, key: str, value: str) -> None:
+    """Set KEY = "value" in a TOML secrets file (replace the line if present, else append). Never prints the value."""
+    path = Path(secrets_path)
+    line = f'{key} = "{value}"'
+    lines = path.read_text().splitlines() if path.exists() else []
+    for i, existing in enumerate(lines):
+        if existing.split("=")[0].strip() == key:
+            lines[i] = line
+            break
+    else:
+        lines.append(line)
+    path.write_text("\n".join(lines) + "\n")
+
+
 # ---- drafts (pure) ---------------------------------------------------------------------------
 def build_drafts(zoho_csv: str | Path, cfg: dict) -> list[dict]:
     """One draft per PO, read from the run's Zoho import CSV (so it always matches what was generated)."""

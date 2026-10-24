@@ -76,6 +76,18 @@ def _cmd_zoho_files(args) -> int:
     return 0
 
 
+def _cmd_zoho_token(args) -> int:
+    import tomllib
+
+    from planner import zoho
+    secrets = Path(args.secrets)
+    values = tomllib.loads(secrets.read_text()) if secrets.exists() else {}
+    token = zoho.exchange_code(values, args.code)
+    zoho.save_secret(secrets, "ZOHO_REFRESH_TOKEN", token)
+    print(f"  refresh token saved to {secrets} (not shown). Add the same ZOHO_REFRESH_TOKEN line to the Streamlit Secrets panel.")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="planner", description="Freshroots demand planning and PO automation")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -100,6 +112,10 @@ def build_parser() -> argparse.ArgumentParser:
     z.add_argument("--config", default="config.yaml")
     z.add_argument("--out", default="data/zoho_seed")
     z.set_defaults(fn=_cmd_zoho_files)
+    k = sub.add_parser("zoho-token", help="Exchange a Zoho Self Client one-time code for a refresh token and save it to the secrets file")
+    k.add_argument("--code", required=True)
+    k.add_argument("--secrets", default=".streamlit/secrets.toml")
+    k.set_defaults(fn=_cmd_zoho_token)
     return p
 
 
