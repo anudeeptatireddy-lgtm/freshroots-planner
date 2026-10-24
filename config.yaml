@@ -61,6 +61,11 @@ po:
     unit_price: "Unit Price"
     notes: "Notes"
 
+zoho:
+  # Live sending to Zoho stays OFF until this is false AND ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET / ZOHO_REFRESH_TOKEN are set.
+  # While true, the app only previews the draft POs it would send.
+  dry_run_only: true
+
 ai_summary:                       # optional layer; OFF by default. Summarises only.
   enabled: false
   model: claude-sonnet-5-5

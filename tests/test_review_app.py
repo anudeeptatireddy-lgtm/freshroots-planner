@@ -124,3 +124,19 @@ def test_app_runs_planner_itself_when_no_runs(tmp_path, monkeypatch):
     assert not at.exception
     assert (tmp_path / "2026-10-19" / "planning_table.csv").exists()
     assert [m.value for m in at.metric][:4] == ["15", "4", "2", "9"]
+
+
+def test_zoho_preview_is_dry_run_and_send_is_locked(run_dir):
+    t = outputs.load_planning_table(run_dir)
+    review.append_log(run_dir / "review_log.csv", [review.make_decision(r.sku_id, r.order_qty, "approve", "Raghav") for r in t[t.status != "NO_ORDER"].itertuples()])
+    at = with_name(fresh())
+    btn(at, "generate").click().run()
+    assert btn(at, "zoho_send").disabled                                   # locked: dry_run_only is true
+    assert not (run_dir / "zoho_preview.json").exists()
+    btn(at, "zoho_preview").click().run()
+    assert not at.exception
+    import json
+    data = json.loads((run_dir / "zoho_preview.json").read_text())
+    assert data["sent_to_zoho"] is False and len(data["purchase_orders"]) == 3
+    assert any("nothing was sent to Zoho" in s.value for s in at.success)
+    assert btn(at, "zoho_send").disabled

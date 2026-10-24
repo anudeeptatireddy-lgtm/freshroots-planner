@@ -17,7 +17,7 @@ import streamlit as st
 from cards import NEED_NAME, auto_card, done_card, open_card
 from rows import rows_view
 
-from planner import outputs, review
+from planner import outputs, review, zoho
 from planner.common import STATUS_AUTO, STATUS_REVIEW, PlannerError, load_config
 from planner.store import Store
 
@@ -81,6 +81,55 @@ def sync_up(run_dir: Path, decisions_only: bool = False) -> None:
         store.save_decisions(run_dir) if decisions_only else store.save_run(run_dir, cfg)
     except Exception as exc:
         st.error(f"Could not save to the database ({type(exc).__name__}). Your change is only on this server.")
+
+
+def secret(name: str) -> str:
+    """A secret from Streamlit Secrets or the environment; empty string if absent."""
+    try:
+        v = st.secrets[name]
+    except Exception:
+        v = os.environ.get(name, "")
+    return str(v or "")
+
+
+def zoho_values() -> dict[str, str]:
+    return {k: secret(k) for k in ("ZOHO_CLIENT_ID", "ZOHO_CLIENT_SECRET", "ZOHO_REFRESH_TOKEN", "ZOHO_DC", "ZOHO_ORG_ID")}
+
+
+def render_zoho(run_dir: Path) -> None:
+    """Send to Zoho: always a dry-run preview; live sending only when config and credentials allow it."""
+    zoho_csv = run_dir / "purchase_orders_zoho_import.csv"
+    if not zoho_csv.exists():
+        return
+    st.markdown("#### Send to Zoho")
+    drafts = zoho.build_drafts(zoho_csv, cfg)
+    if st.button("Preview Zoho drafts (dry run)", key="zoho_preview", width="stretch",
+                 help="Shows exactly what would be created in Zoho. Nothing is sent."):
+        zoho.write_preview(run_dir, zoho.send(drafts, dry_run=True), zoho.check_drafts(drafts))
+        sync_up(run_dir)
+        st.rerun()
+    preview = run_dir / zoho.PREVIEW_FILE
+    if preview.exists():
+        data = json.loads(preview.read_text())
+        st.success("Preview only: nothing was sent to Zoho.", icon="🔒")
+        for r in data["purchase_orders"]:
+            with st.container(border=True):
+                st.markdown(f"**{r['po_number']}** → {r['vendor']}  \n{r['lines']} lines · {r['units']:,} units · would be created as a **draft**")
+                st.dataframe(pd.DataFrame(r["payload"]["line_items"]), width="stretch", hide_index=True)
+        if data["issues"]:
+            st.warning("**Before you send**\n\n" + "\n".join(f"- {i}" for i in data["issues"]))
+        st.download_button("Zoho preview (JSON)", preview.read_bytes(), file_name=preview.name, mime="application/json", key="dl_zoho_preview", width="stretch")
+    settings = zoho.settings_from(zoho_values())
+    live_ok = settings is not None and not cfg.get("zoho", {}).get("dry_run_only", True)
+    if st.button("Send to Zoho", key="zoho_send", type="primary", disabled=not live_ok, width="stretch",
+                 help="Creates the POs as drafts in Zoho. Locked until dry_run_only is false in config.yaml and Zoho credentials are saved."):
+        results = zoho.send(drafts, dry_run=False, client=zoho.ZohoClient(settings))
+        for r in results:
+            (st.success if r["status"] == "created" else st.error)(f"{r['po_number']}: {r['detail']}")
+        st.caption("Check the first draft in Zoho by hand before releasing it.")
+    if not live_ok:
+        have = zoho.credentials_status(zoho_values())
+        st.caption("Sending is locked (dry run only). " + "Credentials: " + ", ".join(f"{k.removeprefix('ZOHO_').lower().replace('_', ' ')} {'✓' if v else '✗'}" for k, v in have.items()) + ".")
 
 
 def list_runs() -> list[Path]:
@@ -269,11 +318,11 @@ with t_orders:
             st.markdown(fr.override_meter(rate), unsafe_allow_html=True)
             if rate > 0.30:
                 st.info("Above 30% this run. One run is not a trend; if it stays above 30% over several runs, the rules may not match reality and are worth revisiting.")
-        zoho = run_dir / "purchase_orders_zoho_import.csv"
-        if zoho.exists():
+        zoho_file = run_dir / "purchase_orders_zoho_import.csv"
+        if zoho_file.exists():
             zc = cfg["po"]["zoho_columns"]
-            z = pd.read_csv(zoho)
-            st.download_button("Download Zoho import (CSV)", zoho.read_bytes(), file_name=zoho.name, mime="text/csv", type="primary",
+            z = pd.read_csv(zoho_file)
+            st.download_button("Download Zoho import (CSV)", zoho_file.read_bytes(), file_name=zoho_file.name, mime="text/csv", type="primary",
                                width="stretch", key="dl_zoho")
             by_sku = table.set_index("sku_id")
             src = {sku: "Auto" if str(row.reviewer).startswith("system:") else ("Changed" if row.decision == "edit" else "Approved")
@@ -289,6 +338,7 @@ with t_orders:
                 "System": [int(by_sku.loc[s, "order_qty"]) for s in z[zc["sku"]]],
                 "Source": [src.get(s, "Auto") for s in z[zc["sku"]]], "Product": z[zc["item_name"]]}), width="stretch", hide_index=True)
         st.caption("Unit prices are not in this run's data, so order values are not shown.")
+        render_zoho(run_dir)
         st.download_button("Sourcing handoff note", (run_dir / "sourcing_handoff.md").read_bytes(), file_name="sourcing_handoff.md",
                            key="dl_handoff", width="stretch")
         st.download_button("Review log (CSV)", log_path.read_bytes(), file_name=f"review_log_{run_dir.name}.csv", key="dl_log2", width="stretch",

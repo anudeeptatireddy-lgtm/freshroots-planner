@@ -158,6 +158,17 @@ branch `main`, main file `app/review_app.py`). Vercel cannot run Streamlit.
 - **Running planning:** the "Run planning" button works on the bundled `data/raw` files or on CSVs you upload.
 - **Design:** the UI follows the Claude Design handoff in `docs/HANDOFF.md` (card option B).
 
+## Zoho Inventory
+
+- **Today:** the app creates the POs and a Zoho import CSV (`purchase_orders_zoho_import.csv`); procurement imports it by hand.
+- **Send to Zoho (Orders tab):** "Preview Zoho drafts (dry run)" shows exactly which draft POs would be created. Nothing is sent
+  (`zoho.dry_run_only: true` in `config.yaml`). Suppliers are matched in Zoho by name and products by SKU; anything unmatched is
+  reported and its PO skipped, never guessed.
+- **Going live:** set `zoho.dry_run_only: false` and add `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN` (and `ZOHO_DC`,
+  optionally `ZOHO_ORG_ID`) as secrets. The live path has only been tested against a fake Zoho (no organisation was available), so check
+  the first real draft by hand.
+- **Seed files:** `python -m planner zoho-files` writes `data/zoho_seed/vendors.csv` and `items.csv` for Zoho's Import screens.
+
 ## Open items for the team
 
 - Check the Zoho import column names (`po.zoho_columns`) against Zoho Inventory's real import screen.
