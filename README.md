@@ -174,6 +174,10 @@ branch `main`, main file `app/review_app.py`). Vercel cannot run Streamlit.
   `ZohoInventory.settings.READ,ZohoInventory.contacts.READ,ZohoInventory.items.READ,ZohoInventory.purchaseorders.CREATE,ZohoInventory.purchaseorders.READ`,
   10 minutes), then run `python -m planner zoho-token --code <code>`. It saves `ZOHO_REFRESH_TOKEN` into `.streamlit/secrets.toml` without
   printing it; add the same line to the Streamlit Cloud Secrets panel.
+- **Zoho test org (2026-10-24):** organisation "Freshroots" (id 60093129602, zoho.in) exists under a second Zoho account. The 4 vendors and
+  15 items were imported through Zoho's Import screens (vendors 4/4, items 15/15). Zoho rejects opening stock without a positive per-unit cost, so
+  items have no stock (counts are in `data/zoho_seed/opening_stock.csv`) and a Selling Price of 0 (a placeholder; Zoho requires the column).
+  The client ID/secret in the secrets file belong to the FIRST Zoho account; a new Self Client is needed in the account that owns this organisation.
 - **Seed files:** `python -m planner zoho-files` writes `data/zoho_seed/vendors.csv` and `items.csv` for Zoho's Import screens.
 
 ## Open items for the team

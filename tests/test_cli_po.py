@@ -159,9 +159,11 @@ def test_ai_layer_off_or_unavailable_falls_back_to_template(tmp_path, monkeypatc
 def test_zoho_seed_files_match_the_seed_data(data_dir, cfg):
     from planner import zoho_files
     f = zoho_files.build(data_dir, cfg)
-    v, i = f["vendors.csv"], f["items.csv"]
+    v, i, o = f["vendors.csv"], f["items.csv"], f["opening_stock.csv"]
     assert list(v["Display Name"]) == ["NutriFlow Distributors", "GrainPath Logistics", "PeakSource Supply", "Meridian Trade Co."]
     assert len(i) == 15 and i["SKU"].is_unique and set(i["Item Type"]) == {"Inventory"}
-    assert i.set_index("SKU").loc["SKU001", "Opening Stock"] == 900 and i.set_index("SKU").loc["SKU001", "Preferred Vendor"] == "NutriFlow Distributors"
-    assert (i["Purchase Rate"] == "").all() and (i["Opening Stock Value"] == "").all()      # no prices in the data, so none invented
+    assert i.set_index("SKU").loc["SKU001", "Preferred Vendor"] == "NutriFlow Distributors"
+    assert (i["Purchase Price"] == "").all() and (i["Selling Price"] == 0).all()           # no prices in the data, none invented
+    assert "Opening Stock" not in i.columns and "Opening Stock Value" not in i.columns       # Zoho refuses stock without a cost
+    assert o.set_index("SKU").loc["SKU001", "Opening Stock"] == 900 and len(o) == 15
     assert set(i["Preferred Vendor"]) <= set(v["Display Name"])

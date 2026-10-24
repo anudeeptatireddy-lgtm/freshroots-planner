@@ -1,7 +1,9 @@
 """Zoho Inventory import files built from our seed data (no API needed).
 
-Zoho's import wizard has a column-mapping step, so these headers only need to be recognisable.
-Nothing is invented: Zoho wants a purchase rate and an opening-stock value, and we have no prices, so those columns are left blank.
+The headers use the names Zoho's import wizard auto-matches (Product Name, Category Name, Purchase Price, SKU, Unit, Opening Stock).
+Nothing is invented: we have no prices, so Purchase Price is blank. Zoho insists on a Selling Price column, so it is 0 (a placeholder).
+Zoho also refuses opening stock without a positive per-unit cost ("Please enter a positive opening stock rate"), so items.csv carries NO stock;
+the counts are in opening_stock.csv, to load once real costs exist.
 """
 from __future__ import annotations
 
@@ -26,19 +28,20 @@ def build(data_dir: str | Path, cfg: dict) -> dict[str, pd.DataFrame]:
         "Status": dist["Status"].str.strip().str.lower().values,
     })
     items = pd.DataFrame({
-        "Item Name": master["SKU_Name"].str.strip().values,
+        "Product Name": master["SKU_Name"].str.strip().values,
         "SKU": master["SKU_ID"].str.strip().values,
         "Unit": master["Unit_of_Measure"].str.strip().str.lower().replace({"units": "pcs"}).values,
         "Product Type": "goods",
         "Item Type": "Inventory",
-        "Category": master["Category"].str.strip().values,
+        "Category Name": master["Category"].str.strip().values,
         "Preferred Vendor": [dist.loc[d.strip(), "Distributor_Name"].strip() if d.strip() in dist.index else "" for d in master["Distributor_ID"]],
-        "Opening Stock": [int(stock.get(s.strip(), 0)) for s in master["SKU_ID"]],
-        "Opening Stock Value": "",
-        "Purchase Rate": "",
+        "Purchase Price": "",
+        "Selling Price": 0,   # Zoho requires this column; we sell nothing through Zoho, so 0 is a placeholder, not a price
         "Status": "active",
     })
-    return {"vendors.csv": vendors, "items.csv": items}
+    opening = pd.DataFrame({"Product Name": master["SKU_Name"].str.strip().values, "SKU": master["SKU_ID"].str.strip().values,
+                            "Opening Stock": [int(stock.get(s.strip(), 0)) for s in master["SKU_ID"]]})
+    return {"vendors.csv": vendors, "items.csv": items, "opening_stock.csv": opening}
 
 
 def write(data_dir: str | Path, cfg: dict, out_dir: str | Path) -> list[Path]:

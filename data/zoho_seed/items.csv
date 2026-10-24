@@ -1,16 +1,16 @@
-Item Name,SKU,Unit,Product Type,Item Type,Category,Preferred Vendor,Opening Stock,Opening Stock Value,Purchase Rate,Status
-Freshroots Mango Drink 200ml,SKU001,pcs,goods,Inventory,Beverage,NutriFlow Distributors,900,,,active
-Freshroots Oats Cookies 150g,SKU002,pcs,goods,Inventory,Snack,NutriFlow Distributors,1200,,,active
-Freshroots Brown Rice 1kg,SKU003,pcs,goods,Inventory,Staple,GrainPath Logistics,820,,,active
-Freshroots Almond Milk 500ml,SKU004,pcs,goods,Inventory,Dairy Alt,GrainPath Logistics,180,,,active
-Freshroots Mixed Nuts 100g,SKU005,pcs,goods,Inventory,Snack,PeakSource Supply,600,,,active
-Freshroots Quinoa 500g,SKU006,pcs,goods,Inventory,Staple,PeakSource Supply,1100,,,active
-Freshroots Coconut Water 330ml,SKU007,pcs,goods,Inventory,Beverage,NutriFlow Distributors,620,,,active
-Freshroots Granola Bar 40g,SKU008,pcs,goods,Inventory,Snack,GrainPath Logistics,950,,,active
-Freshroots Chia Seeds 200g,SKU009,pcs,goods,Inventory,Staple,PeakSource Supply,400,,,active
-Freshroots Apple Cider Vinegar 500ml,SKU010,pcs,goods,Inventory,Condiment,Meridian Trade Co.,260,,,active
-Freshroots Multigrain Bread 400g,SKU011,pcs,goods,Inventory,Staple,Meridian Trade Co.,460,,,active
-Freshroots Herbal Tea 25 bags,SKU012,pcs,goods,Inventory,Beverage,Meridian Trade Co.,480,,,active
-Freshroots Peanut Butter 300g,SKU013,pcs,goods,Inventory,Condiment,NutriFlow Distributors,180,,,active
-Freshroots Dark Chocolate 80g,SKU014,pcs,goods,Inventory,Snack,GrainPath Logistics,620,,,active
-Freshroots Honey 500g,SKU015,pcs,goods,Inventory,Condiment,PeakSource Supply,360,,,active
+Product Name,SKU,Unit,Product Type,Item Type,Category Name,Preferred Vendor,Purchase Price,Selling Price,Status
+Freshroots Mango Drink 200ml,SKU001,pcs,goods,Inventory,Beverage,NutriFlow Distributors,,0,active
+Freshroots Oats Cookies 150g,SKU002,pcs,goods,Inventory,Snack,NutriFlow Distributors,,0,active
+Freshroots Brown Rice 1kg,SKU003,pcs,goods,Inventory,Staple,GrainPath Logistics,,0,active
+Freshroots Almond Milk 500ml,SKU004,pcs,goods,Inventory,Dairy Alt,GrainPath Logistics,,0,active
+Freshroots Mixed Nuts 100g,SKU005,pcs,goods,Inventory,Snack,PeakSource Supply,,0,active
+Freshroots Quinoa 500g,SKU006,pcs,goods,Inventory,Staple,PeakSource Supply,,0,active
+Freshroots Coconut Water 330ml,SKU007,pcs,goods,Inventory,Beverage,NutriFlow Distributors,,0,active
+Freshroots Granola Bar 40g,SKU008,pcs,goods,Inventory,Snack,GrainPath Logistics,,0,active
+Freshroots Chia Seeds 200g,SKU009,pcs,goods,Inventory,Staple,PeakSource Supply,,0,active
+Freshroots Apple Cider Vinegar 500ml,SKU010,pcs,goods,Inventory,Condiment,Meridian Trade Co.,,0,active
+Freshroots Multigrain Bread 400g,SKU011,pcs,goods,Inventory,Staple,Meridian Trade Co.,,0,active
+Freshroots Herbal Tea 25 bags,SKU012,pcs,goods,Inventory,Beverage,Meridian Trade Co.,,0,active
+Freshroots Peanut Butter 300g,SKU013,pcs,goods,Inventory,Condiment,NutriFlow Distributors,,0,active
+Freshroots Dark Chocolate 80g,SKU014,pcs,goods,Inventory,Snack,GrainPath Logistics,,0,active
+Freshroots Honey 500g,SKU015,pcs,goods,Inventory,Condiment,PeakSource Supply,,0,active
