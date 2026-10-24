@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install playwright==1.49.1 && playwright install --with-deps chromium
-      - name: Visit the app (wakes it if asleep; fails loudly if it is private or unprotected)
+      - name: Visit the app (wakes it if asleep; fails loudly if it is private)
         env:
           APP_URL: ${{ vars.APP_URL || 'https://anudeeptatireddy-lgtm-freshroots-planner-appreview-app-wxuoaz.streamlit.app' }}
         run: python scripts/keepalive.py

@@ -1,10 +1,9 @@
 """Visit the hosted app like a person would, so Streamlit Cloud never puts it to sleep (it hibernates after ~12 hours without visitors).
 
-Run by .github/workflows/keep-awake.yml every few hours. Exit code 0 = the app is awake and protected. Anything else fails the job
-loudly, so GitHub emails you instead of the app quietly sleeping:
-  - 'private'  : Streamlit's own login is in the way, so a robot cannot visit. Make the app public AND set an APP_PASSWORD secret.
-  - 'open'     : the app is public with NO password. Set the APP_PASSWORD secret now.
-  - 'unknown'  : the page never settled into a known state.
+Run by .github/workflows/keep-awake.yml every few hours. Exit code 0 = the app is awake (with or without an APP_PASSWORD). Anything else
+fails the job loudly, so GitHub emails you instead of the app quietly sleeping:
+  - 'private'  : Streamlit's own login is in the way, so a robot cannot visit. Make the app public.
+  - 'loading'  : the page never settled into a known state.
 """
 from __future__ import annotations
 
@@ -22,13 +21,13 @@ WAKE_BUTTON = re.compile(r"get this app back up", re.I)
 def classify(url: str, text: str) -> tuple[str, str]:
     """(status, message). status is one of: sleeping, private, protected, open, loading."""
     if "share.streamlit.io/-/auth" in url or re.search(r"sign in to (continue|your streamlit)|log in to continue", text, re.I):
-        return "private", "Streamlit's own sign-in is blocking visitors. Set the app to public and set an APP_PASSWORD secret."
+        return "private", "Streamlit's own sign-in is blocking visitors. Set the app to public."
     if re.search(r"gone to sleep|back up", text, re.I):
         return "sleeping", "The app was asleep; waking it."
     if LOGIN_HEADING in text:
         return "protected", "The app is awake and showing its password page."
     if APP_HEADING in text:
-        return "open", "The app is public with NO password. Set an APP_PASSWORD secret in Streamlit now."
+        return "open", "The app is awake (no password set)."
     return "loading", "Still loading."
 
 
@@ -62,7 +61,7 @@ def main(url: str, timeout_s: int = 150) -> int:
                 break
         browser.close()
     print(f"[{status}] {msg}")
-    return 0 if status == "protected" else 1
+    return 0 if status in ("protected", "open") else 1
 
 
 if __name__ == "__main__":

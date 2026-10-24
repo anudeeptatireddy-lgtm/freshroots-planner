@@ -192,9 +192,9 @@ branch `main`, main file `app/review_app.py`). Vercel cannot run Streamlit.
 
 - Streamlit Community Cloud puts an app to sleep after about 12 hours with no visitor. `.github/workflows/keep-awake.yml` visits the app every 6 hours
   with a real headless browser (`scripts/keepalive.py`) and clicks "get this app back up" if it ever finds it asleep. Run it by hand from the GitHub Actions tab.
-- **The app must be protected, because it can send POs to Zoho.** Add an `APP_PASSWORD` secret in Streamlit Secrets. While it is set, visitors see only a
-  password page (5 wrong tries locks the page until reload). The keep-alive visit passes only when it sees that password page. If the app is public with no
-  password, or private behind Streamlit's own sign-in (a robot cannot visit), the job FAILS and GitHub emails the repo owner.
+- **No password by default.** The app is public. Anyone with the link can open it and, if Zoho credentials are set, send draft POs to Zoho (the duplicate
+  guard still applies). To lock it, add an `APP_PASSWORD` secret in Streamlit Secrets; remove it to go back to open. The keep-alive job passes either way and
+  FAILS only if the app is private behind Streamlit's own sign-in (a robot cannot visit), so GitHub emails the repo owner.
 - Limits: GitHub pauses scheduled workflows in a repo with no activity for 60 days (push anything, or re-enable it in the Actions tab).
 
 ## Open items for the team
