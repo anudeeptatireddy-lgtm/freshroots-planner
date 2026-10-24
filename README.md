@@ -167,6 +167,9 @@ branch `main`, main file `app/review_app.py`). Vercel cannot run Streamlit.
 - **Going live:** set `zoho.dry_run_only: false` and add `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN` (and `ZOHO_DC`,
   optionally `ZOHO_ORG_ID`) as secrets. The live path has only been tested against a fake Zoho (no organisation was available), so check
   the first real draft by hand.
+- **Status (2026-10-24):** the Zoho client ID/secret are valid (Zoho answers `invalid_code` to a wrong code, not `invalid_client`) and the
+  India data centre is right, but Zoho refuses to create an organisation for this account (HTTP 400 on `POST /api/v1/organizations`,
+  three tries). Until an organisation exists there is no refresh token and nothing real to send to; the dry run is the only live-tested part.
 - **Seed files:** `python -m planner zoho-files` writes `data/zoho_seed/vendors.csv` and `items.csv` for Zoho's Import screens.
 
 ## Open items for the team
@@ -180,8 +183,9 @@ branch `main`, main file `app/review_app.py`). Vercel cannot run Streamlit.
 
 ```
 config.yaml   data/raw/   outputs/<run_date>/   docs/HANDOFF.md   .streamlit/config.toml (theme)
-src/planner/  load clean organise rules forecast exceptions pipeline review po handoff outputs store cli
-app/          review_app.py (page flow)  cards.py (per-line cards)  fr_html.py (HTML pieces + tooltips)  style.css
+src/planner/  load clean organise rules forecast exceptions pipeline review po handoff outputs store zoho zoho_files cli
+app/          review_app.py (page flow)  cards.py (per-line cards)  rows.py (Rows view)  orders_ui.py (Orders + Send to Zoho)
+              skus_ui.py (All SKUs)  fr_html.py (HTML pieces + tooltips)  style.css
 tests/        pipeline, exceptions, CLI/PO, review app (AppTest), cards, store (Neon test branch)
 ```
 
