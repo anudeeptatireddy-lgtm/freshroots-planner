@@ -69,6 +69,13 @@ def _cmd_db_seed(args) -> int:
     return 0
 
 
+def _cmd_zoho_files(args) -> int:
+    from planner import zoho_files
+    for p in zoho_files.write(args.data, load_config(args.config), args.out):
+        print(f"  wrote {p}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="planner", description="Freshroots demand planning and PO automation")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -88,6 +95,11 @@ def build_parser() -> argparse.ArgumentParser:
     d.add_argument("--data", default="data/raw")
     d.add_argument("--config", default="config.yaml")
     d.set_defaults(fn=_cmd_db_seed)
+    z = sub.add_parser("zoho-files", help="Write Zoho Inventory import files (vendors.csv, items.csv) from the seed data")
+    z.add_argument("--data", default="data/raw")
+    z.add_argument("--config", default="config.yaml")
+    z.add_argument("--out", default="data/zoho_seed")
+    z.set_defaults(fn=_cmd_zoho_files)
     return p
 
 
