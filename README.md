@@ -178,6 +178,9 @@ branch `main`, main file `app/review_app.py`). Vercel cannot run Streamlit.
   15 items were imported through Zoho's Import screens (vendors 4/4, items 15/15). Zoho rejects opening stock without a positive per-unit cost, so
   items have no stock (counts are in `data/zoho_seed/opening_stock.csv`) and a Selling Price of 0 (a placeholder; Zoho requires the column).
   The client ID/secret in the secrets file belong to the FIRST Zoho account; a new Self Client is needed in the account that owns this organisation.
+- **Live test passed (2026-10-24):** with a refresh token for the new Self Client, the live path looked up all 3 suppliers and 5 products in Zoho by name/SKU
+  and created one real draft: Zoho PO-00001, reference FR-PO-20261019-03, Meridian Trade Co., 500 units, status DRAFT, amount 0 (no prices in the data).
+  Only that one PO was sent. The app's Send button is still locked: set `zoho.dry_run_only: false` and add the Zoho secrets to Streamlit to use it.
 - **Seed files:** `python -m planner zoho-files` writes `data/zoho_seed/vendors.csv` and `items.csv` for Zoho's Import screens.
 
 ## Open items for the team
