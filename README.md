@@ -184,6 +184,8 @@ branch `main`, main file `app/review_app.py`). Vercel cannot run Streamlit.
 - **Send button (unlocked 2026-10-24):** `zoho.dry_run_only` is `false`. The button still needs all of: Zoho secrets saved (client ID/secret, refresh token, `ZOHO_DC`,
   `ZOHO_ORG_ID`), the confirmation box ticked, and POs not already sent (`zoho_sent.json` in the run folder). It creates DRAFTS only; a person releases them in Zoho.
   Set `dry_run_only: true` to return to preview-only.
+- **Hosted end-to-end test passed (2026-10-24):** on the Streamlit Cloud app, 4 exceptions approved (reviewer "Claude test"), 3 POs generated, and Send to Zoho created
+  drafts PO-00002, -00003, -00004 (visible in Zoho). A reload shows them as already sent. PO-00001 is the earlier manual test (a duplicate of the Meridian PO).
 - **Seed files:** `python -m planner zoho-files` writes `data/zoho_seed/vendors.csv` and `items.csv` for Zoho's Import screens.
 
 ## Open items for the team

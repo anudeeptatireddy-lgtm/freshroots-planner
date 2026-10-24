@@ -67,7 +67,10 @@ def render_zoho(run_dir: Path, cfg: dict, sync_up) -> None:
         zoho.record_sent(sent_file, results)
         sync_up(run_dir)
         for r in results:
-            (st.success if r["status"] == "created" else st.error)(f"{r['po_number']}: {r['detail']}")
+            if r["status"] == "created":
+                st.success(f"{r['po_number']}: {r['detail']}")
+            else:
+                st.error(f"{r['po_number']}: {r['detail']}")
         st.caption("These are drafts. Open them in Zoho, check them, then release them.")
     if not live_ok:
         have = zoho.credentials_status(zoho_values())
