@@ -62,9 +62,9 @@ po:
     notes: "Notes"
 
 zoho:
-  # Live sending to Zoho stays OFF until this is false AND ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET / ZOHO_REFRESH_TOKEN are set.
-  # While true, the app only previews the draft POs it would send.
-  dry_run_only: true
+  # Live sending is ON, but the Send button still needs ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET / ZOHO_REFRESH_TOKEN saved as secrets,
+  # a ticked confirmation box, and it skips POs already sent. Set true to go back to preview-only.
+  dry_run_only: false
 
 ai_summary:                       # optional layer; OFF by default. Summarises only.
   enabled: false

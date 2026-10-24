@@ -23,6 +23,7 @@ from planner.common import PlannerError
 
 Http = Callable[..., dict]
 PREVIEW_FILE = "zoho_preview.json"
+SENT_FILE = "zoho_sent.json"
 
 
 @dataclass(frozen=True)
@@ -231,3 +232,13 @@ def write_preview(run_dir: str | Path, results: list[dict], issues: list[str]) -
     path = Path(run_dir) / PREVIEW_FILE
     path.write_text(json.dumps({"mode": "dry-run", "sent_to_zoho": False, "issues": issues, "purchase_orders": results}, indent=2))
     return path
+
+
+def record_sent(path: str | Path, results: list[dict]) -> None:
+    """Remember which POs were created in Zoho, so a second click never makes duplicate drafts."""
+    path = Path(path)
+    sent = json.loads(path.read_text()) if path.exists() else {}
+    for r in results:
+        if r["status"] == "created":
+            sent[r["po_number"]] = {"zoho_id": r.get("zoho_id", ""), "detail": r["detail"]}
+    path.write_text(json.dumps(sent, indent=2))

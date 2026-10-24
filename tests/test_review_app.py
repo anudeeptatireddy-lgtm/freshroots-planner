@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
@@ -140,3 +142,54 @@ def test_zoho_preview_is_dry_run_and_send_is_locked(run_dir):
     assert data["sent_to_zoho"] is False and len(data["purchase_orders"]) == 3
     assert any("nothing was sent to Zoho" in s.value for s in at.success)
     assert btn(at, "zoho_send").disabled
+
+
+def _generated_run(run_dir):
+    t = outputs.load_planning_table(run_dir)
+    review.append_log(run_dir / "review_log.csv", [review.make_decision(r.sku_id, r.order_qty, "approve", "Raghav") for r in t[t.status != "NO_ORDER"].itertuples()])
+    at = with_name(fresh())
+    btn(at, "generate").click().run()
+    return at
+
+
+ZOHO_ENV = {"ZOHO_CLIENT_ID": "cid", "ZOHO_CLIENT_SECRET": "sec", "ZOHO_REFRESH_TOKEN": "rt", "ZOHO_DC": "in", "ZOHO_ORG_ID": "100"}
+
+
+def test_send_to_zoho_stays_locked_without_credentials_even_though_config_allows_it(run_dir):
+    at = _generated_run(run_dir)
+    assert btn(at, "zoho_send").disabled
+    assert any("Zoho credentials are missing" in c.value for c in at.caption)
+
+
+def test_send_to_zoho_needs_credentials_and_a_ticked_confirmation(run_dir, monkeypatch):
+    for k, v in ZOHO_ENV.items():
+        monkeypatch.setenv(k, v)
+    at = _generated_run(run_dir)
+    assert btn(at, "zoho_send").disabled                                    # credentials present, but not confirmed
+    at.checkbox(key="zoho_confirm").check().run()
+    assert not btn(at, "zoho_send").disabled
+    assert "creates 3 draft POs" in at.checkbox(key="zoho_confirm").label
+
+
+def test_second_click_never_creates_duplicate_drafts(run_dir, monkeypatch):
+    from planner import zoho
+    for k, v in ZOHO_ENV.items():
+        monkeypatch.setenv(k, v)
+    sent_calls = []
+
+    def fake_send(drafts, *, dry_run=True, client=None):
+        sent_calls.append([d["po_number"] for d in drafts])
+        return [{"po_number": d["po_number"], "vendor": d["vendor_name"], "lines": 1, "units": 1, "status": "created",
+                 "detail": f"Draft PO-0000{i} created in Zoho", "zoho_id": f"Z{i}"} for i, d in enumerate(drafts, 1)]
+
+    monkeypatch.setattr(zoho, "send", fake_send)
+    monkeypatch.setattr(zoho, "ZohoClient", lambda settings: object())
+    at = _generated_run(run_dir)
+    at.checkbox(key="zoho_confirm").check().run()
+    btn(at, "zoho_send").click().run()
+    assert sent_calls == [["FR-PO-20261019-01", "FR-PO-20261019-02", "FR-PO-20261019-03"]]
+    assert set(json.loads((run_dir / "zoho_sent.json").read_text())) == {"FR-PO-20261019-01", "FR-PO-20261019-02", "FR-PO-20261019-03"}
+
+    at = fresh()                                                            # a fresh visit: everything is already in Zoho
+    assert btn(at, "zoho_send").disabled
+    assert any("Already in Zoho as drafts" in i.value for i in at.info)

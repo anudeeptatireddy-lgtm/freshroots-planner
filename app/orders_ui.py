@@ -15,11 +15,13 @@ from planner.common import PlannerError
 
 
 def secret(name: str) -> str:
-    """A secret from Streamlit Secrets or the environment; empty string if absent."""
-    try:
-        v = st.secrets[name]
-    except Exception:
-        v = os.environ.get(name, "")
+    """A secret from the environment, else Streamlit Secrets (skipped when external services are disabled, e.g. in tests)."""
+    v = os.environ.get(name, "")
+    if not v and not os.environ.get("FRESHROOTS_DISABLE_DB"):
+        try:
+            v = st.secrets[name]
+        except Exception:
+            v = ""
     return str(v or "")
 
 
@@ -52,15 +54,25 @@ def render_zoho(run_dir: Path, cfg: dict, sync_up) -> None:
         st.download_button("Zoho preview (JSON)", preview.read_bytes(), file_name=preview.name, mime="application/json", key="dl_zoho_preview", width="stretch")
     settings = zoho.settings_from(zoho_values())
     live_ok = settings is not None and not cfg.get("zoho", {}).get("dry_run_only", True)
-    if st.button("Send to Zoho", key="zoho_send", type="primary", disabled=not live_ok, width="stretch",
-                 help="Creates the POs as drafts in Zoho. Locked until dry_run_only is false in config.yaml and Zoho credentials are saved."):
-        results = zoho.send(drafts, dry_run=False, client=zoho.ZohoClient(settings))
+    sent_file = run_dir / zoho.SENT_FILE
+    sent = json.loads(sent_file.read_text()) if sent_file.exists() else {}
+    todo = [d for d in drafts if d["po_number"] not in sent]
+    if sent:
+        st.info("Already in Zoho as drafts: " + ", ".join(f"{po} ({v['detail']})" for po, v in sent.items()), icon="✅")
+    confirmed = st.checkbox(f"I understand this creates {len(todo)} draft PO{'s' if len(todo) != 1 else ''} in Zoho", key="zoho_confirm",
+                            disabled=not live_ok or not todo)
+    if st.button("Send to Zoho", key="zoho_send", type="primary", disabled=not (live_ok and todo and confirmed), width="stretch",
+                 help="Creates the POs as drafts in Zoho. Already-sent POs are skipped. Locked until Zoho credentials are saved."):
+        results = zoho.send(todo, dry_run=False, client=zoho.ZohoClient(settings))
+        zoho.record_sent(sent_file, results)
+        sync_up(run_dir)
         for r in results:
             (st.success if r["status"] == "created" else st.error)(f"{r['po_number']}: {r['detail']}")
-        st.caption("Check the first draft in Zoho by hand before releasing it.")
+        st.caption("These are drafts. Open them in Zoho, check them, then release them.")
     if not live_ok:
         have = zoho.credentials_status(zoho_values())
-        st.caption("Sending is locked (dry run only). " + "Credentials: " + ", ".join(f"{k.removeprefix('ZOHO_').lower().replace('_', ' ')} {'✓' if v else '✗'}" for k, v in have.items()) + ".")
+        locked = "Zoho credentials are missing" if settings is None else "live sending is switched off in config.yaml"
+        st.caption(f"Sending is locked: {locked}. Credentials: " + ", ".join(f"{k.removeprefix('ZOHO_').lower().replace('_', ' ')} {'✓' if v else '✗'}" for k, v in have.items()) + ".")
 
 
 def render_orders(run_dir: Path, cfg: dict, table: pd.DataFrame, needs: pd.DataFrame, auto: pd.DataFrame, pending: list[str],
