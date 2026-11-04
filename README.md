@@ -194,13 +194,15 @@ Desktop-first React app (`web/`, Vite) over the same Python engine, served with 
 
 ![Components map](docs/components-map.png)
 
+More detail on how the parts connect: [docs/architecture-detail.png](docs/architecture-detail.png).
+
 - **Tabs:** Review (exception cards, then auto-approved lines), Stock (warehouse rack view: one carton per week of cover), Orders (generate POs, downloads, Send to Zoho), All SKUs.
 - **API:** one endpoint, `/api/index?op=runs|run|file|plan|decide|generate|zoho`. All rules stay in `src/planner`; the browser only displays.
 - **Storage:** Neon Postgres when `DATABASE_URL` is set (needed on Vercel, whose disk is wiped between calls); otherwise local `outputs/` files.
 - **Zoho:** the five `ZOHO_*` variables unlock sending. Without them the page only previews (dry run).
 - **Run locally:** `python scripts/dev_api.py` (port 8787) and `cd web && npm install && npm run dev` (port 5173, proxies `/api`).
 - **Deploy:** `vercel deploy --prod` from the repo root (`vercel.json` builds `web/` and bundles `api/`, `src/`, `config.yaml`, `data/raw/`). Add `DATABASE_URL` in the Vercel project's Environment Variables.
-- **Tests:** `tests/test_api.py` covers planning, decisions, PO generation, file safety, uploads and (with `TEST_DATABASE_URL`) cold starts on Postgres. Re-draw the map with `python scripts/make_components_map.py`.
+- **Tests:** `tests/test_api.py` covers planning, decisions, PO generation, file safety, uploads and (with `TEST_DATABASE_URL`) cold starts on Postgres. Re-draw the maps with `python scripts/make_components_map.py` and `python scripts/make_architecture_detail.py`.
 
 ## Keeping the hosted app awake and protected
 
