@@ -5,7 +5,7 @@ import { Chip, CoverBar, Tip } from "./ui";
 
 const PAST = { approve: "Approved", edit: "Changed", reject: "Rejected" };
 
-export default function ReviewCard({ r, d, compact = false }) {
+export default function ReviewCard({ r, d, compact = false, onSaved }) {
   const { decide, busy } = useApp();
   const [reopened, setReopened] = useState(false);
   const [qty, setQty] = useState(String(d ? d.final_qty : r.order_qty));
@@ -14,7 +14,7 @@ export default function ReviewCard({ r, d, compact = false }) {
   const n = Number(qty);
   const valid = qty !== "" && Number.isInteger(n) && n >= 0;
   const same = n === r.order_qty;
-  const save = (action) => decide([{ sku: r.sku_id, action, qty: action === "reject" ? 0 : n, note }], `${r.sku_id} ${PAST[action].toLowerCase()}.`).then((x) => x && setReopened(false));
+  const save = (action) => decide([{ sku: r.sku_id, action, qty: action === "reject" ? 0 : n, note }], `${r.sku_id} ${PAST[action].toLowerCase()}.`).then((x) => { if (x) { setReopened(false); onSaved?.(); } });
   const isAuto = d && String(d.reviewer).startsWith("system:");
 
   if (done) {
