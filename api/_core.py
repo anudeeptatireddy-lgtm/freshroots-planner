@@ -5,6 +5,7 @@ import base64
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -21,6 +22,8 @@ DATA_DIR = ROOT / "data" / "raw"
 TMP_BASE = Path(tempfile.gettempdir()) / "fr_runs"
 OUT_LOCAL = Path(os.environ.get("FRESHROOTS_OUTPUTS") or (ROOT / "outputs" if os.access(ROOT, os.W_OK) else TMP_BASE))   # serverless disks are read-only
 RUN_ID = re.compile(r"^[\w.-]+$")
+BUNDLE_NAME = re.compile(r"^(?:PO_[\w.-]+\.pdf|[\w.-]+\.(?:csv|json|md))$")
+BUNDLE_LIMIT = 3_000_000      # bytes; a run is ~40 KB, this only stops abuse
 FILE_TYPES = {".pdf": "application/pdf", ".csv": "text/csv", ".md": "text/markdown", ".json": "application/json"}
 COLS = ["sku_id", "sku_name", "category", "perishability", "distributor_id", "distributor_name", "standard_reorder_qty", "unit", "unit_price",
         "units_on_hand", "inventory_position", "avg_weekly_12w", "avg_weekly_4w", "change_4w_vs_12w", "is_festival", "uplift", "adjusted_weekly_demand", "weeks_of_cover",
@@ -49,15 +52,27 @@ def run_ids() -> list[str]:
     store = get_store()
     if store:
         return store.list_runs()
+    if OUT_LOCAL == TMP_BASE:         # serverless without a database: each visitor's browser holds its own run
+        return []
     return sorted((p.name for p in OUT_LOCAL.glob("*") if (p / "planning_table.csv").exists()), reverse=True)
 
 
-def open_run(run_id: str) -> Path:
+def open_run(run_id: str, bundle: dict | None = None) -> Path:
+    """The run's folder. With Postgres it is rebuilt from the database. Without one, a serverless instance may never have seen the
+    run, so the browser sends the run's files back (`bundle`) and the folder is rebuilt from them."""
     if not RUN_ID.match(run_id or ""):
         raise PlannerError("Unknown run")
     store, base = get_store(), base_dir()
     if store:
         store.materialize([run_id], base)
+    elif bundle:
+        files = {n: base64.b64decode(b) for n, b in bundle.items() if BUNDLE_NAME.match(n)}
+        if sum(len(v) for v in files.values()) > BUNDLE_LIMIT:
+            raise PlannerError("Run is too large")
+        shutil.rmtree(base / run_id, ignore_errors=True)
+        (base / run_id).mkdir(parents=True, exist_ok=True)
+        for n, content in files.items():
+            (base / run_id / n).write_bytes(content)
     run_dir = base / run_id
     if not (run_dir / "planning_table.csv").exists():
         raise PlannerError("Unknown run")
@@ -110,11 +125,12 @@ def run_payload(run_dir: Path) -> dict:
         "decisions": json.loads(dec.to_json(orient="records")) if not dec.empty else [],
         "pending": pending, "counts": {"skus": len(table), "review": int((table.status == STATUS_REVIEW).sum()), "auto": int((table.status == STATUS_AUTO).sum())},
         "po_ready": (run_dir / "sourcing_handoff.md").exists(), "run_log": run_log, "orders": orders(run_dir, table, dec), "zoho": zoho_state(run_dir),
-        "files": sorted(p.name for p in run_dir.iterdir() if p.is_file()), "stats": review.override_stats(dec)}
+        "files": sorted(p.name for p in run_dir.iterdir() if p.is_file()), "stats": review.override_stats(dec),
+        "bundle": None if get_store() else {p.name: base64.b64encode(p.read_bytes()).decode() for p in run_dir.iterdir() if p.is_file() and BUNDLE_NAME.match(p.name)}}
 
 
 def decide(body: dict) -> dict:
-    run_dir = open_run(body.get("run", ""))
+    run_dir = open_run(body.get("run", ""), body.get("bundle"))
     if str(body.get("reviewer", "")).strip().lower().startswith(review.SYSTEM_PREFIX):
         raise PlannerError(f"A reviewer name cannot start with '{review.SYSTEM_PREFIX}': that prefix is reserved for automatic approvals.")
     table = outputs.load_planning_table(run_dir).set_index("sku_id")
@@ -142,7 +158,7 @@ def plan(body: dict) -> dict:
 
 
 def generate(body: dict) -> dict:
-    run_dir = open_run(body.get("run", ""))
+    run_dir = open_run(body.get("run", ""), body.get("bundle"))
     if not str(body.get("reviewer", "")).strip() or str(body["reviewer"]).strip().lower().startswith(review.SYSTEM_PREFIX):
         raise PlannerError("Type your name first, so the log shows who approved.")
     outputs.generate_pos(run_dir, CFG)
@@ -151,7 +167,7 @@ def generate(body: dict) -> dict:
 
 
 def zoho_action(body: dict) -> dict:
-    run_dir = open_run(body.get("run", ""))
+    run_dir = open_run(body.get("run", ""), body.get("bundle"))
     csv = run_dir / "purchase_orders_zoho_import.csv"
     if not csv.exists():
         raise PlannerError("Generate the purchase orders first.")

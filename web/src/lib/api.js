@@ -9,10 +9,10 @@ const call = async (op, { method = "GET", params = {}, body } = {}) => {
 export const api = {
   runs: () => call("runs"),
   run: (id) => call("run", { params: { id } }),
-  decide: (run, reviewer, changes) => call("decide", { method: "POST", body: { run, reviewer, changes } }),
+  decide: (run, reviewer, changes, bundle) => call("decide", { method: "POST", body: { run, reviewer, changes, bundle } }),
   plan: (files) => call("plan", { method: "POST", body: { files } }),
-  generate: (run, reviewer) => call("generate", { method: "POST", body: { run, reviewer } }),
-  zoho: (run, mode, confirm = false) => call("zoho", { method: "POST", body: { run, mode, confirm } }),
+  generate: (run, reviewer, bundle) => call("generate", { method: "POST", body: { run, reviewer, bundle } }),
+  zoho: (run, mode, confirm = false, bundle) => call("zoho", { method: "POST", body: { run, mode, confirm, bundle } }),
   fileUrl: (run, name) => `/api/index?op=file&run=${encodeURIComponent(run)}&name=${encodeURIComponent(name)}`,
 };
 

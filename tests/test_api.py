@@ -47,6 +47,35 @@ def test_upload_replaces_a_bundled_file(api):
     assert api("POST", "plan", body={"files": {"calendar.csv": cal}})[1]["id"].endswith("_r2")     # a re-run never reuses an id
 
 
+def test_no_database_run_survives_a_fresh_server_instance(api, tmp_path):
+    """Serverless without a database: any call may land on an instance that never saw the run. The browser's bundle rebuilds it."""
+    import shutil
+    _, run = api("POST", "plan")
+    bundle = run["bundle"]
+    assert bundle and "planning_table.csv" in bundle and "review_log.csv" not in bundle
+
+    def fresh_instance():
+        shutil.rmtree(tmp_path / run["id"], ignore_errors=True)
+
+    changes = [{"sku": s, "action": "approve"} for s in run["pending"]]
+    fresh_instance()
+    assert api("POST", "decide", body={"run": run["id"], "reviewer": "T", "changes": changes})[0] == 400      # no bundle: honest error
+    status, decided = api("POST", "decide", body={"run": run["id"], "reviewer": "T", "changes": changes, "bundle": bundle})
+    assert status == 200 and decided["pending"] == [] and "review_log.csv" in decided["bundle"]
+    fresh_instance()
+    status, done = api("POST", "generate", body={"run": run["id"], "reviewer": "T", "bundle": decided["bundle"]})
+    assert status == 200 and done["po_ready"] and any(n.startswith("PO_") for n in done["bundle"])
+    fresh_instance()
+    status, prev = api("POST", "zoho", body={"run": run["id"], "mode": "preview", "bundle": done["bundle"]})
+    assert status == 200 and prev["zoho"]["preview"]
+    assert api("POST", "decide", body={"run": run["id"], "reviewer": "T", "changes": [], "bundle": {"../x.csv": "AA=="}})[0] == 400  # unsafe names ignored
+
+
+def test_serverless_without_database_lists_no_runs(api, monkeypatch):
+    monkeypatch.setattr(_core, "OUT_LOCAL", _core.TMP_BASE)
+    assert api("GET", "runs")[1]["runs"] == []
+
+
 @pytest.mark.skipif(not os.environ.get("TEST_DATABASE_URL"), reason="needs TEST_DATABASE_URL (Neon tests branch)")
 def test_database_mode_survives_cold_starts(monkeypatch, tmp_path):
     """Serverless instances start with an empty disk: everything must come back from Postgres."""

@@ -132,11 +132,10 @@
 <rect x="1440" y="168" width="284" height="214" rx="16" fill="#fff" stroke="#2f9e6b" stroke-width="2"/>
 <text x="1456" y="196" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Neon Postgres</text>
 <text x="1454" y="222" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Source of truth (psycopg).</text>
-<text x="1454" y="245" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• runs, run_files</text>
-<text x="1454" y="268" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• planning_lines, data_issues</text>
-<text x="1454" y="291" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• decisions (append-only log)</text>
-<text x="1454" y="314" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• purchase_order_lines</text>
-<text x="1454" y="337" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• reference data (SKUs, sales…)</text>
+<text x="1454" y="245" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">No DB: the browser holds the run.</text>
+<text x="1454" y="268" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• runs, run_files, decisions (log)</text>
+<text x="1454" y="291" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• planning_lines, data_issues</text>
+<text x="1454" y="314" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• purchase_order_lines, reference data</text>
 <rect x="1440" y="398" width="284" height="186" rx="16" fill="#fff" stroke="#2f9e6b" stroke-width="2"/>
 <text x="1456" y="426" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Zoho Inventory API (zoho.in)</text>
 <text x="1454" y="452" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">OAuth refresh token, org id.</text>

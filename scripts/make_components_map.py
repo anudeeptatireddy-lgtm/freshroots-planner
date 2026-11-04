@@ -78,7 +78,7 @@ for i, (a, b) in enumerate(stages):
 box(X[3], 706, CW, 208, "AI / model layer", ["None in the decision path:", "every number comes from written", "rules a person can read and check.", "Optional LLM summary hook: off.", "Acceptance run 2026-10-19 matches."], fill="#fff", stroke=INK, sw=2.4)
 
 # 5 storage etc
-box(X[4], 168, CW, 214, "Neon Postgres", ["Source of truth (psycopg).", "• runs, run_files", "• planning_lines, data_issues", "• decisions (append-only log)", "• purchase_order_lines", "• reference data (SKUs, sales…)"], stroke=OK, sw=2)
+box(X[4], 168, CW, 214, "Neon Postgres", ["Source of truth (psycopg).", "No DB: the browser holds the run.", "• runs, run_files, decisions (log)", "• planning_lines, data_issues", "• purchase_order_lines, reference data"], stroke=OK, sw=2)
 box(X[4], 398, CW, 186, "Zoho Inventory API (zoho.in)", ["OAuth refresh token, org id.", "Finds vendor and item, then creates", "DRAFT purchase orders only.", "Dry-run preview first; duplicate", "guard; a person releases in Zoho."], stroke=OK, sw=2)
 box(X[4], 600, CW, 150, "Libraries", ["pandas (data), PyYAML (config),", "ReportLab (PO PDFs), psycopg", "(Postgres), React + Vite (UI)"])
 box(X[4], 766, CW, 148, "Outputs per run", ["• PO_<id>.pdf per supplier", "• purchase_orders_zoho_import.csv", "• sourcing_handoff.md", "• review_log.csv · run_log.json"], fill="#e9f6ef", stroke=OK, sw=2)

@@ -4,9 +4,13 @@ import { useApp } from "../lib/app";
 import { num } from "../lib/glossary";
 import { Tip } from "./ui";
 
-const Download = ({ run, name, children, primary }) => (
-  <a className={`btn ${primary ? "btn-primary" : "btn-soft"}`} href={api.fileUrl(run, name)} download={name}>{children}</a>
-);
+const MIME = { pdf: "application/pdf", csv: "text/csv", md: "text/markdown", json: "application/json" };
+/** With a database the file comes from the API; without one the browser already holds it (the run's bundle). */
+const Download = ({ d, name, children, primary }) => {
+  const b64 = d.bundle?.[name];
+  const href = b64 ? `data:${MIME[name.split(".").pop()] || "application/octet-stream"};base64,${b64}` : api.fileUrl(d.id, name);
+  return <a className={`btn ${primary ? "btn-primary" : "btn-soft"}`} href={href} download={name}>{children}</a>;
+};
 
 function Zoho({ d }) {
   const { zoho, busy } = useApp();
@@ -58,12 +62,12 @@ export default function Orders({ d }) {
           <small>{d.stats.overrides} of {d.stats.decided_lines} decided lines</small>
         </div>
         {rate > 0.3 && <div className="notice">Above 30% this run. One run is not a trend; if it stays above 30% over several runs, the rules may not match reality and are worth revisiting.</div>}
-        <Download run={d.id} name="purchase_orders_zoho_import.csv" primary>Download Zoho import (CSV)</Download>
+        <Download d={d} name="purchase_orders_zoho_import.csv" primary>Download Zoho import (CSV)</Download>
       </section>
       {d.orders.map((o) => (
         <section className="panel" key={o.po}>
           <div className="card-head"><div><b>{o.po}</b><small>{o.vendor} · {o.lines.length} line{o.lines.length === 1 ? "" : "s"} · {num(o.units)} units</small></div>
-            <Download run={d.id} name={o.pdf}>PDF</Download></div>
+            <Download d={d} name={o.pdf}>PDF</Download></div>
           <table className="table"><thead><tr><th>SKU</th><th>Product</th><th>Final</th><th>System</th><th>Source</th></tr></thead>
             <tbody>{o.lines.map((l) => <tr key={l.sku}><td>{l.sku}</td><td>{l.name}</td><td><b>{num(l.final)}</b></td><td>{num(l.system)}</td><td>{l.source}</td></tr>)}</tbody></table>
         </section>
@@ -71,8 +75,8 @@ export default function Orders({ d }) {
       {!d.rows.some((r) => r.unit_price != null) && <small className="foot">Unit prices are not in this run's data, so order values are not shown.</small>}
       <Zoho d={d} />
       <section className="panel row-btns">
-        <Download run={d.id} name="sourcing_handoff.md">Sourcing handoff note</Download>
-        <Download run={d.id} name="review_log.csv">Review log (CSV)</Download>
+        <Download d={d} name="sourcing_handoff.md">Sourcing handoff note</Download>
+        <Download d={d} name="review_log.csv">Review log (CSV)</Download>
       </section>
     </>
   );
