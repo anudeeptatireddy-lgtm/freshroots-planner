@@ -18,8 +18,8 @@ from planner.store import Store  # noqa: E402
 
 CFG = load_config(ROOT / "config.yaml")
 DATA_DIR = ROOT / "data" / "raw"
-OUT_LOCAL = Path(os.environ.get("FRESHROOTS_OUTPUTS", ROOT / "outputs"))
 TMP_BASE = Path(tempfile.gettempdir()) / "fr_runs"
+OUT_LOCAL = Path(os.environ.get("FRESHROOTS_OUTPUTS") or (ROOT / "outputs" if os.access(ROOT, os.W_OK) else TMP_BASE))   # serverless disks are read-only
 RUN_ID = re.compile(r"^[\w.-]+$")
 FILE_TYPES = {".pdf": "application/pdf", ".csv": "text/csv", ".md": "text/markdown", ".json": "application/json"}
 COLS = ["sku_id", "sku_name", "category", "perishability", "distributor_id", "distributor_name", "standard_reorder_qty", "unit", "unit_price",

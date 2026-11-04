@@ -19,10 +19,23 @@ function Stats({ d }) {
 }
 
 export default function App() {
-  const { data: d, busy, error, flash, clearError } = useApp();
+  const { data: d, busy, error, flash, clearError, plan } = useApp();
   const [tab, setTab] = useState("review");
   const [mode, setMode] = useState("cards");
-  if (!d) return <main className="app"><Header />{error ? <div className="notice warn">{error}</div> : <p className="loading">Loading…</p>}</main>;
+  if (!d) {
+    return (
+      <main className="app"><Header />
+        {busy ? <p className="loading">Loading…</p> : (
+          <section className="panel empty">
+            <h3>No planning runs yet</h3>
+            <p className="lead">Plan on the bundled SAP files, or use the upload button (top right) to add your own.</p>
+            {error && <div className="notice warn">{error}</div>}
+            <button className="btn btn-primary" onClick={() => plan([])}>Run planning</button>
+          </section>
+        )}
+      </main>
+    );
+  }
 
   const dec = Object.fromEntries(d.decisions.map((x) => [x.sku_id, x]));
   const needs = d.rows.filter((r) => r.status === "NEEDS_REVIEW");
