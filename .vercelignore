@@ -1,0 +1,7 @@
+.venv
+outputs
+tests
+app
+docs
+.streamlit
+.env.local
