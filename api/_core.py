@@ -21,7 +21,8 @@ CFG = load_config(ROOT / "config.yaml")
 DATA_DIR = ROOT / "data" / "raw"
 TMP_BASE = Path(tempfile.gettempdir()) / "fr_runs"
 OUT_LOCAL = Path(os.environ.get("FRESHROOTS_OUTPUTS") or (ROOT / "outputs" if os.access(ROOT, os.W_OK) else TMP_BASE))   # serverless disks are read-only
-RUN_ID = re.compile(r"^[\w.-]+$")
+RUN_ID = re.compile(r"^\d{4}-\d{2}-\d{2}(?:_r\d{1,4})?$")        # exactly what new_run_dir produces
+FILE_NAME = re.compile(r"^[A-Za-z0-9][\w.-]*$")
 BUNDLE_NAME = re.compile(r"^(?:PO_[\w.-]+\.pdf|[\w.-]+\.(?:csv|json|md))$")
 BUNDLE_LIMIT = 3_000_000      # bytes; a run is ~40 KB, this only stops abuse
 FILE_TYPES = {".pdf": "application/pdf", ".csv": "text/csv", ".md": "text/markdown", ".json": "application/json"}
@@ -57,9 +58,12 @@ def run_ids() -> list[str]:
     return sorted((p.name for p in OUT_LOCAL.glob("*") if (p / "planning_table.csv").exists()), reverse=True)
 
 
+_request_dirs: list[Path] = []
+
+
 def open_run(run_id: str, bundle: dict | None = None) -> Path:
     """The run's folder. With Postgres it is rebuilt from the database. Without one, a serverless instance may never have seen the
-    run, so the browser sends the run's files back (`bundle`) and the folder is rebuilt from them."""
+    run, so the browser sends the run's files back (`bundle`); they are rebuilt in a private folder that exists for this request only."""
     if not RUN_ID.match(run_id or ""):
         raise PlannerError("Unknown run")
     store, base = get_store(), base_dir()
@@ -69,8 +73,9 @@ def open_run(run_id: str, bundle: dict | None = None) -> Path:
         files = {n: base64.b64decode(b) for n, b in bundle.items() if BUNDLE_NAME.match(n)}
         if sum(len(v) for v in files.values()) > BUNDLE_LIMIT:
             raise PlannerError("Run is too large")
-        shutil.rmtree(base / run_id, ignore_errors=True)
-        (base / run_id).mkdir(parents=True, exist_ok=True)
+        base = Path(tempfile.mkdtemp(prefix="fr_req_"))
+        _request_dirs.append(base)
+        (base / run_id).mkdir()
         for n, content in files.items():
             (base / run_id / n).write_bytes(content)
     run_dir = base / run_id
@@ -90,7 +95,7 @@ def zoho_state(run_dir: Path) -> dict:
     if not csv.exists():
         return {}
     settings = zoho.settings_from({k: os.environ.get(k, "") for k in ("ZOHO_CLIENT_ID", "ZOHO_CLIENT_SECRET", "ZOHO_REFRESH_TOKEN", "ZOHO_DC", "ZOHO_ORG_ID")})
-    live = settings is not None and not CFG.get("zoho", {}).get("dry_run_only", True)
+    live = settings is not None and not CFG.get("zoho", {}).get("dry_run_only", True) and get_store() is not None   # client-built runs never reach Zoho
     read = lambda name: json.loads((run_dir / name).read_text()) if (run_dir / name).exists() else None  # noqa: E731
     sent = read(zoho.SENT_FILE) or {}
     drafts = zoho.build_drafts(csv, CFG)
@@ -154,7 +159,10 @@ def plan(body: dict) -> dict:
     files = {name: base64.b64decode(b64) for name, b64 in (body.get("files") or {}).items() if re.match(r"^[\w .()-]+\.csv$", name)}
     new_dir = outputs.plan_with_overrides(DATA_DIR, files, CFG, base)
     save(new_dir)
-    return run_payload(new_dir)
+    payload = run_payload(new_dir)
+    if not store and OUT_LOCAL == TMP_BASE:
+        shutil.rmtree(new_dir, ignore_errors=True)      # the browser holds this run; nothing to keep on a serverless disk
+    return payload
 
 
 def generate(body: dict) -> dict:
@@ -195,7 +203,7 @@ def dispatch(method: str, op: str, q: dict, body: dict) -> tuple[int, str, bytes
         elif method == "GET" and op == "file":
             run_dir, name = open_run(q.get("run", "")), q.get("name", "")
             path = run_dir / name
-            if not RUN_ID.match(name) or not path.is_file():
+            if not FILE_NAME.match(name) or not path.is_file():
                 raise PlannerError("No such file")
             return 200, FILE_TYPES.get(path.suffix, "application/octet-stream"), path.read_bytes()
         elif method == "POST" and op in ("decide", "plan", "generate", "zoho"):
@@ -208,3 +216,6 @@ def dispatch(method: str, op: str, q: dict, body: dict) -> tuple[int, str, bytes
     except Exception as e:      # never leak internals (connection strings etc.) to the browser
         print(f"api error {op}: {type(e).__name__}: {e}", file=sys.stderr)
         return 500, "application/json", json.dumps({"error": f"Server error ({type(e).__name__})"}).encode()
+    finally:
+        while _request_dirs:
+            shutil.rmtree(_request_dirs.pop(), ignore_errors=True)

@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useApp } from "../lib/app";
+import { Download } from "./ui";
 
 const REQUIRED = ["weekly_sales.csv", "sku_master.csv", "distributor_master.csv", "current_inventory.csv", "calendar.csv"];
 const OPTIONAL = ["open_purchase_orders.csv", "sku_prices.csv", "distributor_sales.csv"];
@@ -50,6 +51,10 @@ export default function Header({ d }) {
         <details className="run-details">
           <summary>Run details and new run</summary>
           <small>Source files: {Object.keys(d.run_log.file_hashes_sha256 || {}).join(", ") || "bundled files"}</small>
+          <small>Data checks: {d.run_log.data_issues?.total ?? 0} issue{d.run_log.data_issues?.total === 1 ? "" : "s"} found, {d.run_log.data_issues?.needing_review ?? 0} needing review (see the data quality report).</small>
+          <div className="run-files">
+            {[["planning_table.csv", "Planning table"], ["exceptions.csv", "Exceptions"], ["data_quality_report.csv", "Data quality report"], ["run_log.json", "Run log"]].map(([n, t]) => <Download key={n} d={d} name={n}>{t}</Download>)}
+          </div>
           <button className="btn" disabled={busy} onClick={() => plan([])} title="Plan again on the files already on the server. To use fresh SAP files, use the upload button.">Start a new run</button>
         </details>
       )}

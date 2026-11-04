@@ -134,3 +134,6 @@ details>summary::-webkit-details-marker{display:none}details>summary::before{con
 .rack-layout{grid-template-columns:minmax(0,1fr) 440px;align-items:start}
 @media(max-width:899px){.rack-layout{grid-template-columns:1fr}.sheet{position:static}}
 .sheet .card-head{padding-right:44px}
+
+.run-files{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.run-files .btn{height:38px;padding:0 16px;font-size:.85rem}
+.run-details{display:flex;flex-direction:column;gap:4px}

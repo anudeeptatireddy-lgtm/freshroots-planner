@@ -1,16 +1,7 @@
 import { useState } from "react";
-import { api } from "../lib/api";
 import { useApp } from "../lib/app";
 import { num } from "../lib/glossary";
-import { Tip } from "./ui";
-
-const MIME = { pdf: "application/pdf", csv: "text/csv", md: "text/markdown", json: "application/json" };
-/** With a database the file comes from the API; without one the browser already holds it (the run's bundle). */
-const Download = ({ d, name, children, primary }) => {
-  const b64 = d.bundle?.[name];
-  const href = b64 ? `data:${MIME[name.split(".").pop()] || "application/octet-stream"};base64,${b64}` : api.fileUrl(d.id, name);
-  return <a className={`btn ${primary ? "btn-primary" : "btn-soft"}`} href={href} download={name}>{children}</a>;
-};
+import { Download, Tip } from "./ui";
 
 function Zoho({ d }) {
   const { zoho, busy } = useApp();

@@ -34,6 +34,9 @@ def test_files_and_errors_are_contained(api):
     _, run = api("POST", "plan")
     assert api("GET", "file", {"run": run["id"], "name": "../config.yaml"})[0] == 400
     assert api("GET", "run", {"id": "../../etc"})[0] == 400
+    for bad in ("..", ".", "2026-10-19/..", "2026-10-19_r2/../x", ""):
+        assert api("GET", "run", {"id": bad})[0] == 400
+        assert api("POST", "decide", body={"run": bad, "reviewer": "T", "changes": [], "bundle": {"planning_table.csv": "AA=="}})[0] == 400
     assert api("GET", "nope")[0] == 404
     bad = base64.b64encode(b"x").decode()
     assert api("POST", "plan", body={"files": {"weekly_sales.csv": bad}})[0] == 400
@@ -47,7 +50,7 @@ def test_upload_replaces_a_bundled_file(api):
     assert api("POST", "plan", body={"files": {"calendar.csv": cal}})[1]["id"].endswith("_r2")     # a re-run never reuses an id
 
 
-def test_no_database_run_survives_a_fresh_server_instance(api, tmp_path):
+def test_no_database_run_survives_a_fresh_server_instance(api, tmp_path, monkeypatch):
     """Serverless without a database: any call may land on an instance that never saw the run. The browser's bundle rebuilds it."""
     import shutil
     _, run = api("POST", "plan")
@@ -65,6 +68,12 @@ def test_no_database_run_survives_a_fresh_server_instance(api, tmp_path):
     fresh_instance()
     status, done = api("POST", "generate", body={"run": run["id"], "reviewer": "T", "bundle": decided["bundle"]})
     assert status == 200 and done["po_ready"] and any(n.startswith("PO_") for n in done["bundle"])
+    # a client-built run can never reach Zoho for real, even with credentials and live sending switched on
+    for k in ("ZOHO_CLIENT_ID", "ZOHO_CLIENT_SECRET", "ZOHO_REFRESH_TOKEN", "ZOHO_DC", "ZOHO_ORG_ID"):
+        monkeypatch.setenv(k, "x")
+    monkeypatch.setitem(_core.CFG["zoho"], "dry_run_only", False)
+    assert api("POST", "zoho", body={"run": run["id"], "mode": "send", "confirm": True, "bundle": done["bundle"]})[0] == 400
+    assert api("POST", "zoho", body={"run": run["id"], "mode": "preview", "bundle": done["bundle"]})[1]["zoho"]["live"] is False
     fresh_instance()
     status, prev = api("POST", "zoho", body={"run": run["id"], "mode": "preview", "bundle": done["bundle"]})
     assert status == 200 and prev["zoho"]["preview"]
