@@ -1,9 +1,12 @@
 """Vercel entry point: every /api/* call arrives here as /api/index?op=<name>."""
 import json
+import sys
 from http.server import BaseHTTPRequestHandler
+from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from _core import dispatch
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _core import dispatch  # noqa: E402
 
 
 class handler(BaseHTTPRequestHandler):

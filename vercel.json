@@ -1,8 +1,9 @@
 {
+  "framework": null,
   "buildCommand": "cd web && npm install && npm run build",
   "outputDirectory": "web/dist",
   "installCommand": "echo skip",
   "functions": {
-    "api/index.py": { "maxDuration": 60, "includeFiles": "{src/**,config.yaml,data/raw/**}" }
+    "api/index.py": { "maxDuration": 60, "includeFiles": "{api/**,src/**,config.yaml,data/raw/**}" }
   }
 }
