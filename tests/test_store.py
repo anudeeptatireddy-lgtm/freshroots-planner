@@ -107,6 +107,9 @@ def test_invalid_schema_name_rejected():
 def test_app_saves_to_and_reloads_from_the_database(store, cfg, tmp_path, monkeypatch):
     """Whole app flow in DB mode: run planning, decide, then a brand-new server (empty disk) still sees it all."""
     from streamlit.testing.v1 import AppTest
+    # Streamlit copies .streamlit/secrets.toml into os.environ, overwriting DATABASE_URL with the real database.
+    # Running from an empty folder means that file is never found, so this test can only ever touch the Neon tests branch.
+    monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("FRESHROOTS_DISABLE_DB")
     monkeypatch.setenv("DATABASE_URL", store.dsn)
     monkeypatch.setenv("FRESHROOTS_DB_SCHEMA", store.s)

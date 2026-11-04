@@ -39,10 +39,10 @@ export default function Orders({ d }) {
   if (!d.po_ready) {
     return (
       <section className="panel">
-        {pending.length > 0 && <div className="notice warn"><b>{pending.length} exception{pending.length === 1 ? "" : "s"} still need a decision.</b> Open the Review tab.
-          <ul>{pending.map((s) => <li key={s}>{s} {d.rows.find((r) => r.sku_id === s)?.sku_name}</li>)}</ul></div>}
+        {pending.length > 0 && <div className="notice warn"><b>{pending.length} exception{pending.length === 1 ? "" : "s"} still need a decision</b><br />Purchase orders can be generated once every exception is decided. Open the Review tab to decide them.
+          <ul>{pending.map((s) => <li key={s}><b>{s}</b> {d.rows.find((r) => r.sku_id === s)?.sku_name}{d.rows.find((r) => r.sku_id === s)?.is_urgent && " · URGENT"}</li>)}</ul></div>}
         <button className="btn btn-primary" disabled={busy || pending.length > 0} onClick={generate}>Generate purchase orders</button>
-        <small>Builds one PO per supplier from approved lines, plus the Zoho import file and a handoff note. The {d.counts.auto} auto-approved lines are included. {!reviewer.trim() && "Type your name at the top first."}</small>
+        <small>{pending.length ? `Unlocks when all ${d.counts.review} exceptions are decided. ` : "Builds one PO per supplier from approved lines, plus the Zoho import file and a handoff note. "}The {d.counts.auto} auto-approved lines are included automatically.{pending.length === 0 && !reviewer.trim() && " Add your name at the top first."}</small>
       </section>
     );
   }
@@ -55,8 +55,9 @@ export default function Orders({ d }) {
           <span>Override rate <Tip k="override" /></span>
           <b>{rate == null ? "n/a" : `${Math.round(rate * 100)}%`}</b>
           <div className="meter"><i style={{ width: `${Math.min(100, (rate || 0) * 100)}%` }} /><em /></div>
-          <small>{d.stats.overrides} of {d.stats.decided_lines} decided lines changed. Above 30% over several runs, the rules may need a look.</small>
+          <small>{d.stats.overrides} of {d.stats.decided_lines} decided lines</small>
         </div>
+        {rate > 0.3 && <div className="notice">Above 30% this run. One run is not a trend; if it stays above 30% over several runs, the rules may not match reality and are worth revisiting.</div>}
         <Download run={d.id} name="purchase_orders_zoho_import.csv" primary>Download Zoho import (CSV)</Download>
       </section>
       {d.orders.map((o) => (
@@ -67,6 +68,7 @@ export default function Orders({ d }) {
             <tbody>{o.lines.map((l) => <tr key={l.sku}><td>{l.sku}</td><td>{l.name}</td><td><b>{num(l.final)}</b></td><td>{num(l.system)}</td><td>{l.source}</td></tr>)}</tbody></table>
         </section>
       ))}
+      {!d.rows.some((r) => r.unit_price != null) && <small className="foot">Unit prices are not in this run's data, so order values are not shown.</small>}
       <Zoho d={d} />
       <section className="panel row-btns">
         <Download run={d.id} name="sourcing_handoff.md">Sourcing handoff note</Download>

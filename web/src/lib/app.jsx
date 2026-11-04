@@ -47,8 +47,8 @@ export function AppProvider({ children }) {
 
   const value = useMemo(() => ({
     runs, data, busy, error, flash, reviewer, setReviewer, openRun, clearError: () => setError(""),
-    decide: (changes, msg) => (needName() ? null : act(() => api.decide(data.id, reviewer, changes), msg || "Saved.")),
-    generate: () => (needName() ? null : act(() => api.generate(data.id, reviewer), "Purchase orders are ready.")),
+    decide: (changes, msg) => (needName() ? Promise.resolve(null) : act(() => api.decide(data.id, reviewer, changes), msg || "Saved.")),
+    generate: () => (needName() ? Promise.resolve(null) : act(() => api.generate(data.id, reviewer), "Purchase orders are ready.")),
     zoho: (mode, confirm) => act(() => api.zoho(data.id, mode, confirm), mode === "send" ? "Sent to Zoho as drafts." : "Preview ready. Nothing was sent."),
     plan: async (files) => {
       const payload = Object.fromEntries(await Promise.all(files.map(async (f) => [f.name, await toBase64(f)])));

@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1764" height="1180" viewBox="0 0 1764 1180" font-family="Inter, Helvetica, Arial, sans-serif">
+<rect width="1764" height="1180" fill="#f4f3f0"/>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#141414"/></marker></defs>
+<text x="40" y="52" font-size="32" font-weight="800" fill="#141414" text-anchor="start">Freshroots demand planning and PO automation: components map</text>
+<text x="40" y="84" font-size="17.5" font-weight="400" fill="#6b6b66" text-anchor="start">Rules-based planning (no ML) reads SAP files, flags exceptions for a human, then builds purchase orders and drafts them in Zoho.</text>
+<rect x="40" y="118" width="284" height="34" rx="17" fill="#555"/>
+<text x="182.0" y="141" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">1 · DATA SOURCES</text>
+<rect x="390" y="118" width="284" height="34" rx="17" fill="#e8573a"/>
+<text x="532.0" y="141" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">2 · USER INTERFACE</text>
+<rect x="740" y="118" width="284" height="34" rx="17" fill="#141414"/>
+<text x="882.0" y="141" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">3 · API</text>
+<rect x="1090" y="118" width="284" height="34" rx="17" fill="#2d5bd0"/>
+<text x="1232.0" y="141" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">4 · PLANNING ENGINE (PYTHON)</text>
+<rect x="1440" y="118" width="284" height="34" rx="17" fill="#2f9e6b"/>
+<text x="1582.0" y="141" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">5 · STORAGE, TOOLS, OUTPUTS</text>
+<rect x="40" y="168" width="284" height="262" rx="16" fill="#fff" stroke="#d9d7d0" stroke-width="1.5"/>
+<text x="56" y="196" font-size="18" font-weight="700" fill="#141414" text-anchor="start">SAP CSV exports</text>
+<text x="54" y="222" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Required:</text>
+<text x="54" y="245" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• weekly_sales.csv</text>
+<text x="54" y="268" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• sku_master.csv</text>
+<text x="54" y="291" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• distributor_master.csv</text>
+<text x="54" y="314" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• current_inventory.csv</text>
+<text x="54" y="337" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• calendar.csv (festival months)</text>
+<text x="54" y="360" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Optional: open_purchase_orders,</text>
+<text x="54" y="383" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">sku_prices, distributor_sales</text>
+<rect x="40" y="446" width="284" height="128" rx="16" fill="#fff" stroke="#d9d7d0" stroke-width="1.5"/>
+<text x="56" y="474" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Bundled copy</text>
+<text x="54" y="500" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">data/raw/ in the repo is the</text>
+<text x="54" y="523" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">default input, so a run works</text>
+<text x="54" y="546" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">with no upload.</text>
+<rect x="40" y="590" width="284" height="190" rx="16" fill="#fff" stroke="#d9d7d0" stroke-width="1.5"/>
+<text x="56" y="618" font-size="18" font-weight="700" fill="#141414" text-anchor="start">config.yaml (all thresholds)</text>
+<text x="54" y="644" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• high demand: +20% → order 1.5×</text>
+<text x="54" y="667" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• cover: 6–14 wk (perishable 3–4)</text>
+<text x="54" y="690" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• festival uplift 1.25 (calendar)</text>
+<text x="54" y="713" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• borderline: 2 pts / 0.25 wk</text>
+<text x="54" y="736" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• Zoho columns, sending switch</text>
+<rect x="40" y="796" width="284" height="118" rx="16" fill="#fdece7" stroke="#e8573a" stroke-width="1.5"/>
+<text x="56" y="824" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Reviewer (human)</text>
+<text x="54" y="850" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Names every decision. Decides all</text>
+<text x="54" y="873" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">exceptions before any PO exists.</text>
+<rect x="390" y="168" width="284" height="100" rx="16" fill="#fff" stroke="#e8573a" stroke-width="2"/>
+<text x="406" y="196" font-size="18" font-weight="700" fill="#141414" text-anchor="start">React web app (Vite)</text>
+<text x="404" y="222" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Static site on Vercel.</text>
+<text x="404" y="245" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Desktop-first. No business logic.</text>
+<rect x="390" y="284" width="284" height="96" rx="16" fill="#fff" stroke="#d9d7d0" stroke-width="1.5"/>
+<text x="406" y="312" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Header</text>
+<text x="404" y="338" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Reviewer name, run picker,</text>
+<text x="404" y="361" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Upload files, run details, new run</text>
+<rect x="390" y="396" width="284" height="140" rx="16" fill="#fff" stroke="#d9d7d0" stroke-width="1.5"/>
+<text x="406" y="424" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Review tab</text>
+<text x="404" y="450" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Exception cards: headline, compare</text>
+<text x="404" y="473" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">table, reasons, then Approve, Use</text>
+<text x="404" y="496" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">suggested, Edit qty or Reject, plus</text>
+<text x="404" y="519" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">a note. Auto lines listed below.</text>
+<rect x="390" y="552" width="284" height="96" rx="16" fill="#fff" stroke="#d9d7d0" stroke-width="1.5"/>
+<text x="406" y="580" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Stock tab (warehouse rack)</text>
+<text x="404" y="606" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Each carton = 1 week of cover;</text>
+<text x="404" y="629" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">dashed boxes = incoming order</text>
+<rect x="390" y="664" width="284" height="116" rx="16" fill="#fff" stroke="#d9d7d0" stroke-width="1.5"/>
+<text x="406" y="692" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Orders tab</text>
+<text x="404" y="718" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Generate POs (locked until all</text>
+<text x="404" y="741" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">decided), override rate, PO PDFs,</text>
+<text x="404" y="764" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">CSV downloads, Send to Zoho</text>
+<rect x="390" y="796" width="284" height="118" rx="16" fill="#fff" stroke="#d9d7d0" stroke-width="1.5"/>
+<text x="406" y="824" font-size="18" font-weight="700" fill="#141414" text-anchor="start">All SKUs + tooltips</text>
+<text x="404" y="850" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Filter and sortable table of all 15</text>
+<text x="404" y="873" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">SKUs. Tooltips explain every term.</text>
+<rect x="740" y="168" width="284" height="100" rx="16" fill="#fff" stroke="#141414" stroke-width="2"/>
+<text x="756" y="196" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Vercel Python function</text>
+<text x="754" y="222" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">api/index.py → api/_core.py</text>
+<text x="754" y="245" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">JSON over HTTPS, one endpoint</text>
+<rect x="740" y="284" width="284" height="196" rx="16" fill="#fff" stroke="#d9d7d0" stroke-width="1.5"/>
+<text x="756" y="312" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Operations</text>
+<text x="754" y="338" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">GET   runs · run · file</text>
+<text x="754" y="361" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">POST  plan  (optional CSV uploads)</text>
+<text x="754" y="384" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">POST  decide (approve/edit/reject)</text>
+<text x="754" y="407" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">POST  generate (POs)</text>
+<text x="754" y="430" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">POST  zoho (preview | send)</text>
+<text x="754" y="453" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Errors become readable messages</text>
+<rect x="740" y="496" width="284" height="232" rx="16" fill="#fff" stroke="#d9d7d0" stroke-width="1.5"/>
+<text x="756" y="524" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Guards (server side)</text>
+<text x="754" y="550" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• reviewer name required</text>
+<text x="754" y="573" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• “system:” names rejected</text>
+<text x="754" y="596" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• no PO while an exception is open</text>
+<text x="754" y="619" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• run ids never reused (_r2, _r3)</text>
+<text x="754" y="642" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• file names validated</text>
+<text x="754" y="665" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• Zoho send needs confirm + keys</text>
+<rect x="740" y="744" width="284" height="170" rx="16" fill="#fff" stroke="#d9d7d0" stroke-width="1.5"/>
+<text x="756" y="772" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Hosting</text>
+<text x="754" y="798" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Vercel: site + API (public link)</text>
+<text x="754" y="821" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">GitHub: code, branches</text>
+<text x="754" y="844" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Env vars: DATABASE_URL, ZOHO_*</text>
+<rect x="1090" y="168" width="284" height="56" rx="14" fill="#fff" stroke="#2d5bd0" stroke-width="1.8"/>
+<text x="1106" y="192" font-size="16.5" font-weight="700" fill="#141414" text-anchor="start">1 Load</text>
+<text x="1106" y="212" font-size="14" font-weight="400" fill="#6b6b66" text-anchor="start">read 5 CSVs, hash them</text>
+<line x1="1232.0" y1="224" x2="1232.0" y2="234" stroke="#2d5bd0" stroke-width="2.4" marker-end="url(#a)"/>
+<rect x="1090" y="234" width="284" height="56" rx="14" fill="#fff" stroke="#2d5bd0" stroke-width="1.8"/>
+<text x="1106" y="258" font-size="16.5" font-weight="700" fill="#141414" text-anchor="start">2 Clean and validate</text>
+<text x="1106" y="278" font-size="14" font-weight="400" fill="#6b6b66" text-anchor="start">dupes, gaps, bad values flagged</text>
+<line x1="1232.0" y1="290" x2="1232.0" y2="300" stroke="#2d5bd0" stroke-width="2.4" marker-end="url(#a)"/>
+<rect x="1090" y="300" width="284" height="56" rx="14" fill="#fff" stroke="#2d5bd0" stroke-width="1.8"/>
+<text x="1106" y="324" font-size="16.5" font-weight="700" fill="#141414" text-anchor="start">3 Organise</text>
+<text x="1106" y="344" font-size="14" font-weight="400" fill="#6b6b66" text-anchor="start">weeks of cover, festival ×1.25</text>
+<line x1="1232.0" y1="356" x2="1232.0" y2="366" stroke="#2d5bd0" stroke-width="2.4" marker-end="url(#a)"/>
+<rect x="1090" y="366" width="284" height="56" rx="14" fill="#fff" stroke="#2d5bd0" stroke-width="1.8"/>
+<text x="1106" y="390" font-size="16.5" font-weight="700" fill="#141414" text-anchor="start">4 Rules</text>
+<text x="1106" y="410" font-size="14" font-weight="400" fill="#6b6b66" text-anchor="start">overstock, high demand, stockout</text>
+<line x1="1232.0" y1="422" x2="1232.0" y2="432" stroke="#2d5bd0" stroke-width="2.4" marker-end="url(#a)"/>
+<rect x="1090" y="432" width="284" height="56" rx="14" fill="#fff" stroke="#2d5bd0" stroke-width="1.8"/>
+<text x="1106" y="456" font-size="16.5" font-weight="700" fill="#141414" text-anchor="start">5 Forecast</text>
+<text x="1106" y="476" font-size="14" font-weight="400" fill="#6b6b66" text-anchor="start">4-week demand per SKU</text>
+<line x1="1232.0" y1="488" x2="1232.0" y2="498" stroke="#2d5bd0" stroke-width="2.4" marker-end="url(#a)"/>
+<rect x="1090" y="498" width="284" height="56" rx="14" fill="#fdece7" stroke="#e8573a" stroke-width="1.8"/>
+<text x="1106" y="522" font-size="16.5" font-weight="700" fill="#141414" text-anchor="start">6 Exceptions</text>
+<text x="1106" y="542" font-size="14" font-weight="400" fill="#6b6b66" text-anchor="start">flags lines that need a person</text>
+<line x1="1232.0" y1="554" x2="1232.0" y2="564" stroke="#2d5bd0" stroke-width="2.4" marker-end="url(#a)"/>
+<rect x="1090" y="564" width="284" height="56" rx="14" fill="#fdece7" stroke="#e8573a" stroke-width="1.8"/>
+<text x="1106" y="588" font-size="16.5" font-weight="700" fill="#141414" text-anchor="start">7 Human review</text>
+<text x="1106" y="608" font-size="14" font-weight="400" fill="#6b6b66" text-anchor="start">decision log, override rate</text>
+<line x1="1232.0" y1="620" x2="1232.0" y2="630" stroke="#2d5bd0" stroke-width="2.4" marker-end="url(#a)"/>
+<rect x="1090" y="630" width="284" height="56" rx="14" fill="#fff" stroke="#2d5bd0" stroke-width="1.8"/>
+<text x="1106" y="654" font-size="16.5" font-weight="700" fill="#141414" text-anchor="start">8 PO generation</text>
+<text x="1106" y="674" font-size="14" font-weight="400" fill="#6b6b66" text-anchor="start">one PO per supplier</text>
+<rect x="1090" y="706" width="284" height="208" rx="16" fill="#fff" stroke="#141414" stroke-width="2.4"/>
+<text x="1106" y="734" font-size="18" font-weight="700" fill="#141414" text-anchor="start">AI / model layer</text>
+<text x="1104" y="760" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">None in the decision path:</text>
+<text x="1104" y="783" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">every number comes from written</text>
+<text x="1104" y="806" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">rules a person can read and check.</text>
+<text x="1104" y="829" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Optional LLM summary hook: off.</text>
+<text x="1104" y="852" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Acceptance run 2026-10-19 matches.</text>
+<rect x="1440" y="168" width="284" height="214" rx="16" fill="#fff" stroke="#2f9e6b" stroke-width="2"/>
+<text x="1456" y="196" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Neon Postgres</text>
+<text x="1454" y="222" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Source of truth (psycopg).</text>
+<text x="1454" y="245" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• runs, run_files</text>
+<text x="1454" y="268" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• planning_lines, data_issues</text>
+<text x="1454" y="291" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• decisions (append-only log)</text>
+<text x="1454" y="314" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• purchase_order_lines</text>
+<text x="1454" y="337" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• reference data (SKUs, sales…)</text>
+<rect x="1440" y="398" width="284" height="186" rx="16" fill="#fff" stroke="#2f9e6b" stroke-width="2"/>
+<text x="1456" y="426" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Zoho Inventory API (zoho.in)</text>
+<text x="1454" y="452" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">OAuth refresh token, org id.</text>
+<text x="1454" y="475" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Finds vendor and item, then creates</text>
+<text x="1454" y="498" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">DRAFT purchase orders only.</text>
+<text x="1454" y="521" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">Dry-run preview first; duplicate</text>
+<text x="1454" y="544" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">guard; a person releases in Zoho.</text>
+<rect x="1440" y="600" width="284" height="150" rx="16" fill="#fff" stroke="#d9d7d0" stroke-width="1.5"/>
+<text x="1456" y="628" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Libraries</text>
+<text x="1454" y="654" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">pandas (data), PyYAML (config),</text>
+<text x="1454" y="677" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">ReportLab (PO PDFs), psycopg</text>
+<text x="1454" y="700" font-size="15" font-weight="400" fill="#6b6b66" text-anchor="start">(Postgres), React + Vite (UI)</text>
+<rect x="1440" y="766" width="284" height="148" rx="16" fill="#e9f6ef" stroke="#2f9e6b" stroke-width="2"/>
+<text x="1456" y="794" font-size="18" font-weight="700" fill="#141414" text-anchor="start">Outputs per run</text>
+<text x="1454" y="820" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• PO_&lt;id&gt;.pdf per supplier</text>
+<text x="1454" y="843" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• purchase_orders_zoho_import.csv</text>
+<text x="1454" y="866" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• sourcing_handoff.md</text>
+<text x="1454" y="889" font-size="15" font-weight="400" fill="#141414" text-anchor="start">• review_log.csv · run_log.json</text>
+<line x1="328" y1="290" x2="386" y2="290" stroke="#141414" stroke-width="2.4" marker-end="url(#a)"/>
+<text x="357.0" y="281" font-size="13" font-weight="700" fill="#141414" text-anchor="middle">files</text>
+<text x="357.0" y="266" font-size="13" font-weight="700" fill="#141414" text-anchor="middle">CSV</text>
+<line x1="678" y1="226" x2="736" y2="226" stroke="#141414" stroke-width="2.4" marker-end="url(#a)" marker-start="url(#a)"/>
+<text x="707.0" y="217" font-size="13" font-weight="700" fill="#141414" text-anchor="middle">JSON</text>
+<line x1="678" y1="470" x2="736" y2="470" stroke="#141414" stroke-width="2.4" marker-end="url(#a)" marker-start="url(#a)"/>
+<text x="707.0" y="461" font-size="13" font-weight="700" fill="#141414" text-anchor="middle">actions</text>
+<line x1="1028" y1="330" x2="1086" y2="330" stroke="#141414" stroke-width="2.4" marker-end="url(#a)" marker-start="url(#a)"/>
+<text x="1057.0" y="321" font-size="13" font-weight="700" fill="#141414" text-anchor="middle">run</text>
+<text x="1057.0" y="306" font-size="13" font-weight="700" fill="#141414" text-anchor="middle">plan,</text>
+<line x1="1378" y1="250" x2="1436" y2="250" stroke="#141414" stroke-width="2.4" marker-end="url(#a)" marker-start="url(#a)"/>
+<text x="1407.0" y="241" font-size="13" font-weight="700" fill="#141414" text-anchor="middle">load</text>
+<text x="1407.0" y="226" font-size="13" font-weight="700" fill="#141414" text-anchor="middle">save,</text>
+<line x1="1378" y1="480" x2="1436" y2="480" stroke="#141414" stroke-width="2.4" marker-end="url(#a)"/>
+<text x="1407.0" y="471" font-size="13" font-weight="700" fill="#141414" text-anchor="middle">Zoho</text>
+<text x="1407.0" y="456" font-size="13" font-weight="700" fill="#141414" text-anchor="middle">POs to</text>
+<line x1="1378" y1="840" x2="1436" y2="840" stroke="#141414" stroke-width="2.4" marker-end="url(#a)"/>
+<text x="1407.0" y="831" font-size="13" font-weight="700" fill="#141414" text-anchor="middle">files</text>
+<text x="1407.0" y="816" font-size="13" font-weight="700" fill="#141414" text-anchor="middle">write</text>
+<path d="M324 700 H340 V1010 H1064 V394 H1086" fill="none" stroke="#6b6b66" stroke-width="2" stroke-dasharray="6 6" marker-end="url(#a)"/>
+<text x="352" y="1034" font-size="14" font-weight="700" fill="#6b6b66" text-anchor="start">thresholds and the festival calendar feed the rules (stage 4)</text>
+<rect x="40" y="1050" width="1684" height="108" rx="20" fill="#fff" stroke="#141414" stroke-width="2"/>
+<text x="60" y="1080" font-size="15" font-weight="800" fill="#e8573a" text-anchor="start">END-TO-END FLOW</text>
+<rect x="60" y="1094" width="258" height="46" rx="23" fill="#f4f3f0" stroke="#d9d7d0" stroke-width="1.6"/>
+<text x="189" y="1123" font-size="15.5" font-weight="700" fill="#141414" text-anchor="middle">1  SAP files loaded</text>
+<path d="M320 1117 h16" stroke="#141414" stroke-width="2.4" marker-end="url(#a)"/>
+<rect x="339" y="1094" width="258" height="46" rx="23" fill="#f4f3f0" stroke="#d9d7d0" stroke-width="1.6"/>
+<text x="468" y="1123" font-size="15.5" font-weight="700" fill="#141414" text-anchor="middle">2  Rules plan every SKU</text>
+<path d="M599 1117 h16" stroke="#141414" stroke-width="2.4" marker-end="url(#a)"/>
+<rect x="618" y="1094" width="258" height="46" rx="23" fill="#fdece7" stroke="#e8573a" stroke-width="1.6"/>
+<text x="747" y="1123" font-size="15.5" font-weight="700" fill="#141414" text-anchor="middle">3  Exceptions queue for review</text>
+<path d="M878 1117 h16" stroke="#141414" stroke-width="2.4" marker-end="url(#a)"/>
+<rect x="897" y="1094" width="258" height="46" rx="23" fill="#fdece7" stroke="#e8573a" stroke-width="1.6"/>
+<text x="1026" y="1123" font-size="15.5" font-weight="700" fill="#141414" text-anchor="middle">4  Human decides, logged</text>
+<path d="M1157 1117 h16" stroke="#141414" stroke-width="2.4" marker-end="url(#a)"/>
+<rect x="1176" y="1094" width="258" height="46" rx="23" fill="#f4f3f0" stroke="#d9d7d0" stroke-width="1.6"/>
+<text x="1305" y="1123" font-size="15.5" font-weight="700" fill="#141414" text-anchor="middle">5  Generate POs (PDF + CSV)</text>
+<path d="M1436 1117 h16" stroke="#141414" stroke-width="2.4" marker-end="url(#a)"/>
+<rect x="1455" y="1094" width="258" height="46" rx="23" fill="#f4f3f0" stroke="#d9d7d0" stroke-width="1.6"/>
+<text x="1584" y="1123" font-size="15.5" font-weight="700" fill="#141414" text-anchor="middle">6  Zoho draft POs</text>
+</svg>

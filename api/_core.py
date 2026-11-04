@@ -23,7 +23,7 @@ OUT_LOCAL = Path(os.environ.get("FRESHROOTS_OUTPUTS") or (ROOT / "outputs" if os
 RUN_ID = re.compile(r"^[\w.-]+$")
 FILE_TYPES = {".pdf": "application/pdf", ".csv": "text/csv", ".md": "text/markdown", ".json": "application/json"}
 COLS = ["sku_id", "sku_name", "category", "perishability", "distributor_id", "distributor_name", "standard_reorder_qty", "unit", "unit_price",
-        "units_on_hand", "avg_weekly_12w", "avg_weekly_4w", "change_4w_vs_12w", "is_festival", "uplift", "adjusted_weekly_demand", "weeks_of_cover",
+        "units_on_hand", "inventory_position", "avg_weekly_12w", "avg_weekly_4w", "change_4w_vs_12w", "is_festival", "uplift", "adjusted_weekly_demand", "weeks_of_cover",
         "min_weeks", "max_weeks", "flag", "flag_reasons", "action", "order_qty", "is_urgent", "weeks_of_cover_after_order", "forecast_total_4w",
         "exceptions", "exception_reasons", "suggested_qty", "suggested_note", "status"]
 _store: Store | None = None

@@ -188,6 +188,20 @@ branch `main`, main file `app/review_app.py`). Vercel cannot run Streamlit.
   drafts PO-00002, -00003, -00004 (visible in Zoho). A reload shows them as already sent. PO-00001 is the earlier manual test (a duplicate of the Meridian PO).
 - **Seed files:** `python -m planner zoho-files` writes `data/zoho_seed/vendors.csv` and `items.csv` for Zoho's Import screens.
 
+## Web app on Vercel (React + Python API)
+
+Desktop-first React app (`web/`, Vite) over the same Python engine, served with a Vercel Python function (`api/`). The Streamlit app under `app/` still works and shares the engine and database.
+
+![Components map](docs/components-map.png)
+
+- **Tabs:** Review (exception cards, then auto-approved lines), Stock (warehouse rack view: one carton per week of cover), Orders (generate POs, downloads, Send to Zoho), All SKUs.
+- **API:** one endpoint, `/api/index?op=runs|run|file|plan|decide|generate|zoho`. All rules stay in `src/planner`; the browser only displays.
+- **Storage:** Neon Postgres when `DATABASE_URL` is set (needed on Vercel, whose disk is wiped between calls); otherwise local `outputs/` files.
+- **Zoho:** the five `ZOHO_*` variables unlock sending. Without them the page only previews (dry run).
+- **Run locally:** `python scripts/dev_api.py` (port 8787) and `cd web && npm install && npm run dev` (port 5173, proxies `/api`).
+- **Deploy:** `vercel deploy --prod` from the repo root (`vercel.json` builds `web/` and bundles `api/`, `src/`, `config.yaml`, `data/raw/`). Add `DATABASE_URL` in the Vercel project's Environment Variables.
+- **Tests:** `tests/test_api.py` covers planning, decisions, PO generation, file safety, uploads and (with `TEST_DATABASE_URL`) cold starts on Postgres. Re-draw the map with `python scripts/make_components_map.py`.
+
 ## Keeping the hosted app awake and protected
 
 - Streamlit Community Cloud puts an app to sleep after about 12 hours with no visitor. `.github/workflows/keep-awake.yml` visits the app every 6 hours
