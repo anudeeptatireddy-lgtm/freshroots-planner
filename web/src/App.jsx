@@ -2,6 +2,7 @@ import { useState } from "react";
 import AllSkus from "./components/AllSkus";
 import Header from "./components/Header";
 import Orders from "./components/Orders";
+import Rack from "./components/Rack";
 import ReviewCard from "./components/ReviewCard";
 import { Tip } from "./components/ui";
 import { useApp } from "./lib/app";
@@ -20,7 +21,8 @@ function Stats({ d }) {
 
 export default function App() {
   const { data: d, busy, error, flash, clearError } = useApp();
-  const [tab, setTab] = useState("review");
+  const [tab, setTab] = useState("rack");
+  const [sel, setSel] = useState(null);
   const [mode, setMode] = useState("cards");
   if (!d) return <main className="app"><Header />{error ? <div className="notice warn">{error}</div> : <p className="loading">Loading…</p>}</main>;
 
@@ -30,7 +32,9 @@ export default function App() {
   const open = needs.filter((r) => d.pending.includes(r.sku_id)).sort((a, b) => b.is_urgent - a.is_urgent);
   const decided = needs.filter((r) => !d.pending.includes(r.sku_id));
   const list = (rows) => rows.map((r) => <ReviewCard key={r.sku_id + (dec[r.sku_id]?.timestamp || "")} r={r} d={dec[r.sku_id]} compact={mode === "rows"} />);
-  const tabs = [["review", `Review · ${d.pending.length}`], ["auto", `Auto · ${auto.length}`], ["orders", "Orders"], ["all", "All SKUs"]];
+  const tabs = [["rack", "Rack"], ["review", `List · ${d.pending.length}`], ["orders", "Orders"], ["all", "All SKUs"]];
+  const selRow = d.rows.find((r) => r.sku_id === sel);
+  const nextPending = () => setSel(d.pending.find((s) => s !== sel) || null);
 
   return (
     <main className="app">
@@ -38,16 +42,28 @@ export default function App() {
       <section className="hero">
         <h2>{d.pending.length ? `${d.pending.length} line${d.pending.length === 1 ? "" : "s"} need your call.` : d.po_ready ? "Orders are ready." : "Everything is decided."}
           <span>{d.pending.length ? "Check each one, then approve." : d.po_ready ? "Send them to Zoho or download." : "Generate the purchase orders."}</span></h2>
-        <button className="btn btn-accent" onClick={() => setTab(d.pending.length ? "review" : "orders")}>{d.pending.length ? "Show my tasks" : "Go to orders"} →</button>
+        <button className="btn btn-accent" onClick={() => { if (d.pending.length) { setTab("rack"); setSel(d.pending[0]); } else setTab("orders"); }}>{d.pending.length ? "Show my tasks" : "Go to orders"} →</button>
       </section>
       <p className="runline">Run <b>{d.id}</b>{d.festival && ` · festival month, demand +${Math.round((d.uplift - 1) * 100)}%`}<Tip k="festival" /></p>
       <Stats d={d} />
       <nav className="tabs">{tabs.map(([k, t]) => <button key={k} className={tab === k ? "tab on" : "tab"} onClick={() => setTab(k)}>{t}</button>)}</nav>
-      {(tab === "review" || tab === "auto") && (
+      {tab === "review" && (
         <div className="seg" role="group" aria-label="View">{["cards", "rows"].map((m) => <button key={m} className={mode === m ? "on" : ""} onClick={() => setMode(m)}>{m === "cards" ? "Cards" : "Rows"}</button>)}</div>
       )}
-      {tab === "review" && (needs.length === 0 ? <p>No exceptions this run.</p> : <><div className="list">{list(open)}</div>{decided.length > 0 && <h4 className="divider">Decided · {decided.length}</h4>}<div className="list">{list(decided)}</div></>)}
-      {tab === "auto" && <><p className="lead">{auto.length} lines ordered by the rules with nothing unusual. They go into the POs as shown.</p><div className="list">{list(auto)}</div></>}
+      {tab === "rack" && (
+        <div className="rack-layout">
+          <Rack d={d} sel={sel} setSel={setSel} />
+          {selRow ? (
+            <aside className="sheet">
+              <button className="sheet-x" aria-label="Close" onClick={() => setSel(null)}>×</button>
+              <ReviewCard key={selRow.sku_id + (dec[selRow.sku_id]?.timestamp || "")} r={selRow} d={dec[selRow.sku_id]} onSaved={nextPending} />
+            </aside>
+          ) : <aside className="sheet sheet-empty">Tap a bay on the rack to see its stock and decide.</aside>}
+          {selRow && <div className="backdrop" onClick={() => setSel(null)} />}
+        </div>
+      )}
+      {tab === "review" && (needs.length === 0 ? <p>No exceptions this run.</p> : <><div className="list">{list(open)}</div>{decided.length > 0 && <h4 className="divider">Decided · {decided.length}</h4>}<div className="list">{list(decided)}</div><h4 className="divider">Auto · {auto.length}</h4><p className="lead">Ordered by the rules with nothing unusual. They go into the POs as shown.</p><div className="list">{list(auto)}</div></>)}
+      
       {tab === "orders" && <Orders d={d} />}
       {tab === "all" && <AllSkus rows={d.rows} />}
       {error && <div className="toast toast-err" onClick={clearError}>{error}</div>}
