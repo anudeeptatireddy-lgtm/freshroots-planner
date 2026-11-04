@@ -27,9 +27,10 @@ h1,h3,h4{margin:0}
 .tab{white-space:nowrap}
 .seg{display:inline-flex;align-self:flex-start}
 .card{display:flex;flex-direction:column;gap:10px}
-.card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.card-head>div:first-child{flex:1 1 200px;min-width:0}
 .card-head b{display:block}
-.chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
 .facts{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.85rem}
 .why{margin:0;font-size:.85rem;color:var(--muted);line-height:1.45}
 .decide{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}

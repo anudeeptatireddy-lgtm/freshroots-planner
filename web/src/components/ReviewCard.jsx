@@ -31,7 +31,7 @@ export default function ReviewCard({ r, d, compact = false }) {
   return (
     <article className={`card ${r.is_urgent ? "card-urgent" : ""} ${compact ? "compact" : ""}`}>
       <div className="card-head">
-        <div><b>{r.sku_name}</b><small>{r.sku_id} · {r.category} · {r.distributor_name} · {money(r.unit_price)} each</small></div>
+        <div><b>{r.sku_name}</b><small>{r.sku_id} · {r.category} · {r.distributor_name}{r.unit_price != null && ` · ${money(r.unit_price)} each`}</small></div>
         <div className="chips">
           {r.is_urgent && <span className="chip chip-urgent">Urgent</span>}
           {(r.flag || "").split(" + ").filter(Boolean).map((f) => <Chip key={f} code={f} />)}
