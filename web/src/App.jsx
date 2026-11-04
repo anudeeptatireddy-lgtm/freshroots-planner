@@ -39,13 +39,17 @@ export default function App() {
   return (
     <main className="app">
       <Header d={d} />
+      <div className="summary">
+        <div className="summary-text">
       <section className="hero">
         <h2>{d.pending.length ? `${d.pending.length} line${d.pending.length === 1 ? "" : "s"} need your call.` : d.po_ready ? "Orders are ready." : "Everything is decided."}
           <span>{d.pending.length ? "Check each one, then approve." : d.po_ready ? "Send them to Zoho or download." : "Generate the purchase orders."}</span></h2>
         <button className="btn btn-accent" onClick={() => { if (d.pending.length) { setTab("rack"); setSel(d.pending[0]); } else setTab("orders"); }}>{d.pending.length ? "Show my tasks" : "Go to orders"} →</button>
       </section>
       <p className="runline">Run <b>{d.id}</b>{d.festival && ` · festival month, demand +${Math.round((d.uplift - 1) * 100)}%`}<Tip k="festival" /></p>
-      <Stats d={d} />
+        </div>
+        <Stats d={d} />
+      </div>
       <nav className="tabs">{tabs.map(([k, t]) => <button key={k} className={tab === k ? "tab on" : "tab"} onClick={() => setTab(k)}>{t}</button>)}</nav>
       {tab === "review" && (
         <div className="seg" role="group" aria-label="View">{["cards", "rows"].map((m) => <button key={m} className={mode === m ? "on" : ""} onClick={() => setMode(m)}>{m === "cards" ? "Cards" : "Rows"}</button>)}</div>

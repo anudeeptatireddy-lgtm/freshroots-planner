@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { num } from "../lib/glossary";
 import { Tip } from "./ui";
 
@@ -32,7 +32,6 @@ export default function Rack({ d, sel, setSel }) {
     d.rows.forEach((r) => (by[r.distributor_id] ||= { name: r.distributor_name, rows: [] }).rows.push(r));
     return Object.entries(by).sort(([a], [b]) => a.localeCompare(b)).map(([id, z]) => ({ id, ...z }));
   }, [d.rows]);
-  useEffect(() => { if (!sel && d.pending.length) setSel(d.pending[0]); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section className="rack-wrap">
@@ -43,7 +42,6 @@ export default function Rack({ d, sel, setSel }) {
         <span><i className="lg lg-ghost" />Incoming order <Tip text="Dashed boxes show what the order adds to the shelf." /></span>
       </div>
       <div className="rack">
-        <div className="ruler" aria-hidden>{[16, 12, 8, 4, 0].map((w) => <span key={w}>{w}w</span>)}</div>
         {zones.map((z) => (
           <div className="shelf" key={z.id}>
             <div className="shelf-label">{z.name}</div>
