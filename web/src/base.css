@@ -72,3 +72,13 @@ h1,h3,h4{margin:0}
 .hero h2 span{display:block}
 .list{display:grid;gap:12px}
 @media(min-width:900px){.app{max-width:1040px}.list{grid-template-columns:repeat(2,1fr)}.card.compact{grid-column:1/-1}}
+/* Desktop-first layout */
+.app{max-width:1280px;padding:24px 32px 64px;gap:20px}
+.top{grid-template-columns:auto minmax(220px,360px) 1fr;gap:20px}
+.top .who{grid-column:2;grid-row:1}
+.top-actions{grid-column:3;justify-content:flex-end}
+.summary{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:32px;align-items:end}
+.summary-text{display:flex;flex-direction:column;gap:12px}
+.summary .stats{align-self:end}
+.summary .stats .progress{margin-bottom:0}
+@media(max-width:899px){.summary{grid-template-columns:1fr}.top{grid-template-columns:1fr auto}.top .who{grid-column:1/-1;grid-row:auto}.top-actions{grid-column:auto}.app{padding:16px}}
