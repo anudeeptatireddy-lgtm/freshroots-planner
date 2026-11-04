@@ -37,7 +37,8 @@ def build() -> str:
             else:
                 body.append(f"<div class='c' style='background:{bg}'></div>")
     return f"""<!doctype html><meta charset='utf-8'><style>
-body{{margin:0;background:#fff;font-family:Helvetica,Arial,sans-serif}}
+@page{{size:1600px 1048px;margin:0}}
+body{{margin:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-family:Helvetica,Arial,sans-serif}}
 h1{{margin:0;padding:22px 0 16px;text-align:center;font-size:25px;color:{NAVY}}}
 .g{{margin:0 15px 15px;display:grid;grid-template-columns:150px repeat(6,1fr);border:2px solid {NAVY};border-right:0;border-bottom:0}}
 .g>div{{border-right:1px solid {NAVY};border-bottom:1px solid {NAVY}}}
@@ -55,4 +56,6 @@ if __name__ == "__main__":
     subprocess.run(["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "--headless=new", "--disable-gpu", "--hide-scrollbars",
                     "--force-device-scale-factor=1", "--window-size=1600,1048", f"--screenshot={docs / 'components-map.png'}",
                     f"file://{docs / 'components-map.html'}"], check=False, capture_output=True)
-    print(docs / "components-map.png")
+    subprocess.run(["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
+                    f"--print-to-pdf={docs / 'components-map.pdf'}", f"file://{docs / 'components-map.html'}"], check=False, capture_output=True)
+    print(docs / "components-map.png", docs / "components-map.pdf")
