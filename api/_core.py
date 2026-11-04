@@ -115,6 +115,8 @@ def run_payload(run_dir: Path) -> dict:
 
 def decide(body: dict) -> dict:
     run_dir = open_run(body.get("run", ""))
+    if str(body.get("reviewer", "")).strip().lower().startswith(review.SYSTEM_PREFIX):
+        raise PlannerError(f"A reviewer name cannot start with '{review.SYSTEM_PREFIX}': that prefix is reserved for automatic approvals.")
     table = outputs.load_planning_table(run_dir).set_index("sku_id")
     rows = []
     for c in body.get("changes", []):
@@ -141,7 +143,7 @@ def plan(body: dict) -> dict:
 
 def generate(body: dict) -> dict:
     run_dir = open_run(body.get("run", ""))
-    if not str(body.get("reviewer", "")).strip():
+    if not str(body.get("reviewer", "")).strip() or str(body["reviewer"]).strip().lower().startswith(review.SYSTEM_PREFIX):
         raise PlannerError("Type your name first, so the log shows who approved.")
     outputs.generate_pos(run_dir, CFG)
     save(run_dir)
