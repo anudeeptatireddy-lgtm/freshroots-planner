@@ -20,7 +20,7 @@ function Stats({ d }) {
 }
 
 export default function App() {
-  const { data: d, busy, error, flash, clearError, plan, generate, reviewer } = useApp();
+  const { data: d, db, busy, error, flash, clearError, plan, generate, reviewer } = useApp();
   const [tab, setTab] = useState("review");
   const [sel, setSel] = useState(null);
   if (!d) {
@@ -57,6 +57,7 @@ export default function App() {
   return (
     <main className="app">
       <Header d={d} />
+      {!db && <div className="notice warn" role="status"><b>No database connected.</b> Runs are kept in this server's memory only and can disappear between clicks. Connect a database before real use.</div>}
       <div className="summary">
         <div className="summary-text">
           <h2>{d.pending.length ? `${d.pending.length} line${d.pending.length === 1 ? "" : "s"} need${d.pending.length === 1 ? "s" : ""} your call.` : d.po_ready ? "Purchase orders are ready." : "Everything is decided."}</h2>

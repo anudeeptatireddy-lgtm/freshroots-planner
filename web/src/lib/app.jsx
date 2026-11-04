@@ -9,6 +9,7 @@ const store = (k, v) => { try { localStorage.setItem(k, v); } catch { /* private
 
 export function AppProvider({ children }) {
   const [runs, setRuns] = useState([]);
+  const [db, setDb] = useState(true);
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
@@ -32,21 +33,21 @@ export function AppProvider({ children }) {
     } catch (e) { setError(e.message); return null; } finally { setBusy(false); }
   }, []);
 
-  const refreshRuns = async () => setRuns((await api.runs()).runs);
+  const refreshRuns = async () => { const r = await api.runs(); setRuns(r.runs); setDb(r.db); };
   const openRun = (id) => act(() => api.run(id));
 
   useEffect(() => {
     (async () => {
       try {
-        const { runs: ids } = await api.runs();
-        setRuns(ids);
+        const { runs: ids, db: hasDb } = await api.runs();
+        setRuns(ids); setDb(hasDb);
         if (ids.length) setData(await api.run(ids[0]));
       } catch (e) { setError(e.message); } finally { setBusy(false); }
     })();
   }, []);
 
   const value = useMemo(() => ({
-    runs, data, busy, error, flash, reviewer, setReviewer, openRun, clearError: () => setError(""),
+    runs, db, data, busy, error, flash, reviewer, setReviewer, openRun, clearError: () => setError(""),
     decide: (changes, msg) => (needName() ? Promise.resolve(null) : act(() => api.decide(data.id, reviewer, changes), msg || "Saved.")),
     generate: () => (needName() ? Promise.resolve(null) : act(() => api.generate(data.id, reviewer), "Purchase orders are ready.")),
     zoho: (mode, confirm) => act(() => api.zoho(data.id, mode, confirm), mode === "send" ? "Sent to Zoho as drafts." : "Preview ready. Nothing was sent."),
@@ -56,7 +57,7 @@ export function AppProvider({ children }) {
       if (r) refreshRuns();
       return r;
     },
-  }), [runs, data, busy, error, flash, reviewer, act]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [runs, db, data, busy, error, flash, reviewer, act]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
