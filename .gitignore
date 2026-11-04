@@ -10,3 +10,6 @@ build/
 .streamlit/secrets.toml
 .env
 .env.local
+web/node_modules
+web/dist
+.vercel

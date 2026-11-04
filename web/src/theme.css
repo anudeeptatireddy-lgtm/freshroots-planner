@@ -1,0 +1,7 @@
+:root{--font:Inter,system-ui,sans-serif;--bg:#fff;--ink:#111;--muted:#666;--accent:#d6532a;--line:#ddd}
+.card,.panel,.stat{border:1px solid var(--line);padding:12px;border-radius:8px}
+.btn,.tab{border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:8px}
+.btn-primary{background:var(--ink);color:#fff}
+.cover{background:#eee}.cover-band{background:#cfe8cf}.cover-now{background:#555}.cover-after{background:#aaa}
+.toast{background:#111;color:#fff;padding:10px 14px;border-radius:8px}.toast-err{background:#b00020}
+.tip::after{background:#111;color:#fff;border-radius:6px}

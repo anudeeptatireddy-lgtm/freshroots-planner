@@ -35,14 +35,19 @@ export default function App() {
   return (
     <main className="app">
       <Header d={d} />
+      <section className="hero">
+        <h2>{d.pending.length ? `${d.pending.length} line${d.pending.length === 1 ? "" : "s"} need your call.` : d.po_ready ? "Orders are ready." : "Everything is decided."}
+          <span>{d.pending.length ? "Check each one, then approve." : d.po_ready ? "Send them to Zoho or download." : "Generate the purchase orders."}</span></h2>
+        <button className="btn btn-accent" onClick={() => setTab(d.pending.length ? "review" : "orders")}>{d.pending.length ? "Show my tasks" : "Go to orders"} →</button>
+      </section>
       <p className="runline">Run <b>{d.id}</b>{d.festival && ` · festival month, demand +${Math.round((d.uplift - 1) * 100)}%`}<Tip k="festival" /></p>
       <Stats d={d} />
       <nav className="tabs">{tabs.map(([k, t]) => <button key={k} className={tab === k ? "tab on" : "tab"} onClick={() => setTab(k)}>{t}</button>)}</nav>
       {(tab === "review" || tab === "auto") && (
         <div className="seg" role="group" aria-label="View">{["cards", "rows"].map((m) => <button key={m} className={mode === m ? "on" : ""} onClick={() => setMode(m)}>{m === "cards" ? "Cards" : "Rows"}</button>)}</div>
       )}
-      {tab === "review" && (needs.length === 0 ? <p>No exceptions this run.</p> : <>{list(open)}{decided.length > 0 && <h4 className="divider">Decided · {decided.length}</h4>}{list(decided)}</>)}
-      {tab === "auto" && <><p className="lead">{auto.length} lines ordered by the rules with nothing unusual. They go into the POs as shown.</p>{list(auto)}</>}
+      {tab === "review" && (needs.length === 0 ? <p>No exceptions this run.</p> : <><div className="list">{list(open)}</div>{decided.length > 0 && <h4 className="divider">Decided · {decided.length}</h4>}<div className="list">{list(decided)}</div></>)}
+      {tab === "auto" && <><p className="lead">{auto.length} lines ordered by the rules with nothing unusual. They go into the POs as shown.</p><div className="list">{list(auto)}</div></>}
       {tab === "orders" && <Orders d={d} />}
       {tab === "all" && <AllSkus rows={d.rows} />}
       {error && <div className="toast toast-err" onClick={clearError}>{error}</div>}
